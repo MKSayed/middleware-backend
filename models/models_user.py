@@ -13,7 +13,7 @@ class UserType(Base):
 class User(Base):
     __tablename__ = "USER"
     id = Column("ID", Integer, primary_key=True, index=True)
-    username = Column("USERNAME", String(30), unique=True, nullable= False)
+    username = Column("USERNAME", String(30), unique=True, nullable=False)
     password = Column("PASSWORD", String(), nullable=False)
     name = Column("NAME", String(60), nullable=False)
     national_id = Column("NATIONAL_ID", String(14), nullable=True)

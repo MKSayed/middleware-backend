@@ -1,5 +1,5 @@
 from datetime import date, time
-from typing import Optional
+from typing import Optional, ClassVar
 
 from pydantic import BaseModel, ConfigDict
 
@@ -16,6 +16,7 @@ class UserBase(BaseModel):
     id: Optional[int] = None
     username: str
     name: str
+    password: str
     national_id: Optional[str] = None
     tax_id: Optional[int] = None
     fk_user_typecd: Optional[int] = None
@@ -23,12 +24,9 @@ class UserBase(BaseModel):
 
 # Properties to receive via API on creation
 class UserCreate(UserBase):
-    password: str
-
-
-# Properties to receive via API on update
-class UserUpdate(UserBase):
-    password: str
+    id: ClassVar[Optional[int]]
+    tax_id: ClassVar[Optional[int]]
+    fk_user_typecd: ClassVar[Optional[int]]
 
 
 class UserLogBase(BaseModel):
@@ -60,3 +58,5 @@ class UserDisplay(BaseModel):
     name: str
     fk_user_typecd: Optional[int]
     logs: list[UserLogBase]
+
+

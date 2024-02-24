@@ -2,16 +2,14 @@ from fastapi import FastAPI
 import database
 from api.api_v1 import api
 from fastapi.middleware.cors import CORSMiddleware
+from core.config import settings
 
-origins = [
-    "http://localhost:5173",
-]
 
-app = FastAPI()
+app = FastAPI(title=settings.PROJECT_NAME)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

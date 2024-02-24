@@ -2,32 +2,30 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from core.password import get_password_hash, verify_password
+from core.security import get_password_hash, verify_password
 from crud.base import CRUDBase
 from models.models_user import User
-from schemas.schemas_user import UserCreate, UserUpdate
+from schemas.schemas_user import UserCreate, UserBase
 
 
-class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
+class CRUDUser(CRUDBase[User, UserCreate, UserCreate]):
     # Declare model specific CRUD operation methods.
-    def get_by_username(self, db: Session, *, username: str) -> Optional[User]:
+    def get_user_by_username(self, db: Session, username: str) -> Optional[User]:
         return db.query(User).filter(User.username == username).first()
 
-    def create(self, db: Session, *, obj_in: UserCreate) -> User:
+    def create(self, db: Session, obj_in: UserCreate) -> User:
         db_obj = User(
             username=obj_in.username,
             password=get_password_hash(obj_in.password),
             name=obj_in.name,
             national_id=obj_in.national_id,
-            tax_id=obj_in.tax_id,
-            fk_user_typecd=obj_in.fk_user_typecd
         )
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
         return db_obj
 
-    def update(self, db: Session, *, db_obj: User, obj_in: UserUpdate) -> User:
+    def update(self, db: Session, db_obj: User, obj_in: UserCreate) -> User:
         update_data = obj_in.model_dump(exclude_unset=True)
         if update_data["password"]:
             hashed_password = get_password_hash(update_data["password"])
@@ -35,13 +33,13 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             update_data["hashed_password"] = hashed_password
         return super().update(db, db_obj=db_obj, obj_in=update_data)
 
-    def authenticate(self, db: Session, *, username: str, password: str) -> Optional[User]:
-        user = self.get_by_username(db, username=username)
-        if not user:
-            return None
-        if not verify_password(password, user.hashed_password):
-            return None
-        return user
+    # def admin_update(self, db: Session, db_obj: User, obj_in: UserBase) -> User:
+    #     update_data = obj_in.model_dump(exclude_unset=True)
+    #     if update_data["password"]:
+    #         hashed_password = get_password_hash(update_data["password"])
+    #         del update_data["password"]
+    #         update_data["hashed_password"] = hashed_password
+    #     return super().update(db, db_obj=db_obj, obj_in=update_data)
 
 
 crud_user = CRUDUser(User)
