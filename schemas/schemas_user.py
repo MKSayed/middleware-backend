@@ -1,7 +1,7 @@
 from datetime import date, time
 from typing import Optional, ClassVar
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class UserTypeBase(BaseModel):
@@ -9,7 +9,6 @@ class UserTypeBase(BaseModel):
     descr: str
 
 
-# Shared properties
 class UserBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -27,6 +26,18 @@ class UserCreate(UserBase):
     id: ClassVar[Optional[int]]
     tax_id: ClassVar[Optional[int]]
     fk_user_typecd: ClassVar[Optional[int]]
+
+class UserUpdate(UserBase):
+    id: ClassVar[Optional[int]]
+    tax_id: ClassVar[Optional[int]]
+    fk_user_typecd: ClassVar[Optional[int]]
+    password: Optional[str] = None
+
+
+# Properties to send via API on read
+class UserDisplay(UserBase):
+    tax_id: ClassVar[Optional[int]]
+    password: ClassVar[str]
 
 
 class UserLogBase(BaseModel):
@@ -50,13 +61,5 @@ class UserLogDisplay(BaseModel):
     fk_userid: int
     user: UserBase
 
-
-class UserDisplay(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: Optional[int]
-    name: str
-    fk_user_typecd: Optional[int]
-    logs: list[UserLogBase]
 
 
