@@ -22,6 +22,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             password=get_password_hash(obj_in.password),
             name=obj_in.name,
             national_id=obj_in.national_id,
+            status=obj_in.status
         )
         db.add(db_obj)
         db.commit()

@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from models import models_authority
 import database
 from api.api_v1 import api
 from fastapi.middleware.cors import CORSMiddleware

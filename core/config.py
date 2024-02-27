@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:5173",]
 
-    PROJECT_NAME: str = "Rapid Kiosk Systems"
+    PROJECT_NAME: str = "Rapid Kiosk System"
 
     # DB_SERVER: str
     # DB_USER: str

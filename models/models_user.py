@@ -1,7 +1,7 @@
 from database import Base
 from sqlalchemy import Column
 from sqlalchemy import (Integer, String, SmallInteger, Date, Time, PrimaryKeyConstraint,
-                        ForeignKeyConstraint, ForeignKey)
+                        ForeignKeyConstraint, ForeignKey, CHAR)
 from sqlalchemy.orm import relationship
 
 class UserType(Base):
@@ -17,6 +17,7 @@ class User(Base):
     password = Column("PASSWORD", String(), nullable=False)
     name = Column("NAME", String(60), nullable=False)
     national_id = Column("NATIONAL_ID", String(14), nullable=True)
+    status = Column("STATUS", CHAR(1), nullable=False)
     tax_id = Column("TAX_ID", Integer, nullable=True)
     fk_user_typecd = Column("FK_USER_TYPECD", SmallInteger, ForeignKey("USER_TYPE.CD"), nullable=True, index=True)
     logs = relationship("UserLog", back_populates="user")
