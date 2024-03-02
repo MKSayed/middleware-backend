@@ -2,45 +2,34 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Annotated
 
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
 
-from api.deps import SessionDep, get_current_user
-from schemas import schemas_user
-from crud.crud_user import crud_user
+from api.deps import SessionDep, CurrentUser
+from schemas import UserBase, UserCreate, UserUpdate, UserDisplay, UserTypeBase
+from crud.crud_user import crud_user, crud_user_type
 
 router = APIRouter()
 
 
-@router.get("", response_model=list[schemas_user.UserDisplay])
-def get_all_users(db: SessionDep, current_user: Annotated[schemas_user.UserBase, Depends(get_current_user)]):
-    return crud_user.get_all_users(db)
+@router.get("", response_model=list[UserDisplay])
+def get_all_users(db: SessionDep, current_user: CurrentUser):
+    return crud_user.get_all(db)
 
 
 @router.post("/new", status_code=status.HTTP_201_CREATED)
-def create_user(request: schemas_user.UserCreate, db: SessionDep,
-                current_user: Annotated[schemas_user.UserBase, Depends(get_current_user)]):
+def create_user(request: UserCreate, db: SessionDep,
+                current_user: CurrentUser):
     try:
         return crud_user.create(db, obj_in=request)
     except IntegrityError:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists")
 
 
-@router.put("/update/{id}", response_model=schemas_user.UserDisplay)
-def update_user(id: int, db: SessionDep, updated_user: schemas_user.UserUpdate,
-                current_user: Annotated[schemas_user.UserBase, Depends(get_current_user)]):
-    user = crud_user.get(db, id)
+@router.put("/update/{id}", response_model=UserDisplay)
+def update_user(id: int, db: SessionDep, user_update: UserUpdate,
+                current_user: CurrentUser):
+    print(user_update)
     try:
-        return crud_user.update(db, user, updated_user)
+        user = crud_user.get_model_by_attribute(db, "id", id)
+        return crud_user.update(db, db_obj=user, obj_in=user_update)
     except IntegrityError:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User already exists")
-
-
-
-# @router.get('/', response_model=list[UserBase])
-# def get_all_users(db: Session = Depends(get_db)):
-#     return user_controller.get_all_users(db)
-#
-#
-# @router.get('/{id}', response_model=UserBase)
-# def get_user(id: int, db: Session = Depends(get_db)):
-#     return user_controller.get_user(db, id)
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Failed to update user")

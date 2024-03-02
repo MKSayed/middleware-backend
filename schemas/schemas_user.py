@@ -3,6 +3,7 @@ from typing import Optional, ClassVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
+
 class UserTypeBase(BaseModel):
     cd: int
     descr: str

@@ -21,7 +21,7 @@ class Token(BaseModel):
 
 @router.post("", response_model=Token)
 def login_access_token(session: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> Token:
-    user = crud_user.get_user_by_username(session, form_data.username)
+    user = crud_user.get_model_by_attribute(session, "username", form_data.username)
     if not user or not verify_password(form_data.password, user.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Incorrect username or password",

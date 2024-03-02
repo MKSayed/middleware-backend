@@ -4,6 +4,7 @@ from sqlalchemy import (Integer, String, SmallInteger, Date, Time, PrimaryKeyCon
                         ForeignKeyConstraint, ForeignKey, CHAR)
 from sqlalchemy.orm import relationship
 
+
 class UserType(Base):
     __tablename__ = "USER_TYPE"
     cd = Column("CD", SmallInteger, nullable=False, primary_key=True, index=True)
@@ -12,6 +13,7 @@ class UserType(Base):
 
 class User(Base):
     __tablename__ = "USER"
+
     id = Column("ID", Integer, primary_key=True, index=True)
     username = Column("USERNAME", String(30), unique=True, nullable=False)
     password = Column("PASSWORD", String(), nullable=False)

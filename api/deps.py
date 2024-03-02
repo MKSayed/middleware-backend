@@ -17,6 +17,9 @@ TokenDep = Annotated[str, Depends(oauth2_scheme)]
 
 
 def get_current_user(db: SessionDep, token: TokenDep) -> User:
+    def is_user_active(current_user):
+        return current_user.status not in (2, 3)
+
     unauthorized_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                            detail="Could not validate credentials",
                                            headers={"WWW-Authenticate": "Bearer"})
@@ -25,7 +28,12 @@ def get_current_user(db: SessionDep, token: TokenDep) -> User:
         username: str = payload.get("sub")
     except (jwt.JWTError):
         raise unauthorized_exception
-    user = crud_user.get_user_by_username(db, username=username)
+    user = crud_user.get_model_by_attribute(db, "username", username)
     if not user:
         raise unauthorized_exception
+    if not is_user_active(user):
+        raise HTTPException(status_code=400, detail="Inactive user")
     return user
+
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
