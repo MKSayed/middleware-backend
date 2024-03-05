@@ -1,7 +1,7 @@
 from datetime import date
-from typing import Optional
+from typing import Optional, ClassVar
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ApplicationBase(BaseModel):
@@ -11,14 +11,21 @@ class ApplicationBase(BaseModel):
     name: str
 
 
-class TransactionKioskBase(BaseModel):
+class PermissionBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     number: int
-    active: str
+    name: str
+    active: str = Field(max_length=3)
     expiry_date: date
     creation_date: date
     fk_applicationnum: int
+
+
+class PermissionCreate(PermissionBase):
+    expiry_date: ClassVar[date]
+    creation_date: ClassVar[date]
+    fk_applicationnum: ClassVar[int]
 
 
 class AuthorityBase(BaseModel):
@@ -28,7 +35,7 @@ class AuthorityBase(BaseModel):
     start_date: date
     end_date: Optional[date] = None
     active: Optional[str] = None
-    fk_transaction_number: int
+    fk_permission_number: int
     fk_authorized_rnumber: int
 
 

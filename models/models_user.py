@@ -1,4 +1,4 @@
-from database import Base
+from core.database import Base
 from sqlalchemy import Column
 from sqlalchemy import (Integer, String, SmallInteger, Date, Time, PrimaryKeyConstraint,
                         ForeignKeyConstraint, ForeignKey, CHAR)

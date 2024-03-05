@@ -1,7 +1,6 @@
 from fastapi import FastAPI
-from models import models_authority
-import database
-from api.api_v1 import api
+from core.database import Base, engine as db_engine
+from api.api_v1 import main
 from fastapi.middleware.cors import CORSMiddleware
 from core.config import settings
 
@@ -16,7 +15,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(api.router)
+app.include_router(main.router)
 
 
-database.Base.metadata.create_all(database.engine)
+Base.metadata.create_all(db_engine)

@@ -1,9 +1,11 @@
-from database import Base
 from datetime import date
 from typing import Optional
-from sqlalchemy import Column
-from sqlalchemy import (Integer, String, SmallInteger, Date, PrimaryKeyConstraint, ForeignKey, CHAR)
-from sqlalchemy.orm import relationship, Mapped, mapped_column
+
+from sqlalchemy import (String, SmallInteger, PrimaryKeyConstraint, ForeignKey, CHAR)
+from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.sql import func
+
+from core.database import Base
 
 
 class Application(Base):
@@ -13,14 +15,16 @@ class Application(Base):
     name: Mapped[str] = mapped_column("NAME", String(30))
 
 
-class TransactionKiosk(Base):
-    __tablename__ = "TRANSACTION_KIOSK"
+class Permission(Base):
+    __tablename__ = "PERMISSION"
 
     number: Mapped[int] = mapped_column("NUMBER", primary_key=True, index=True)
+    name: Mapped[str] = mapped_column("NAME", String(20))
     active: Mapped[str] = mapped_column("ACTIVE", CHAR(3))
-    expiry_date: Mapped[date] = mapped_column("EXPIRY_DATE")
-    creation_date: Mapped[date] = mapped_column("CREATION_DATE")
-    fk_applicationnum: Mapped[int] = mapped_column("FK_APPLICATIONNUM", ForeignKey('APPLICATION.NUM'), index=True)
+    expiry_date: Mapped[Optional[date]] = mapped_column("EXPIRY_DATE")
+    creation_date: Mapped[date] = mapped_column("CREATION_DATE", server_default=func.current_date())
+    fk_applicationnum: Mapped[Optional[int]] = mapped_column("FK_APPLICATIONNUM", ForeignKey('APPLICATION.NUM'),
+                                                             index=True)
 
 
 class Authority(Base):
@@ -30,13 +34,13 @@ class Authority(Base):
     start_date: Mapped[date] = mapped_column("START_DATE")
     end_date: Mapped[Optional[date]] = mapped_column("END_DATE")
     active: Mapped[Optional[str]] = mapped_column("ACTIVE", CHAR(1))
-    fk_transaction_number: Mapped[int] = mapped_column("FK_TRANSACTION_NUMBER",
-                                                       ForeignKey("TRANSACTION_KIOSK.NUMBER"), index=True)
+    fk_permission_number: Mapped[int] = mapped_column("FK_PERMISSION_NUMBER",
+                                                      ForeignKey("PERMISSION.NUMBER"), index=True)
     fk_authorized_rnumber: Mapped[int] = mapped_column("FK_AUTHORIZED_RNUMBER",
                                                        ForeignKey("AUTHORIZED_ROLE.NUMBER"), index=True)
 
     __table_args__ = (
-        PrimaryKeyConstraint("FK_TRANSACTION_NUMBER", "FK_AUTHORIZED_RNUMBER"),)
+        PrimaryKeyConstraint("FK_PERMISSION_NUMBER", "FK_AUTHORIZED_RNUMBER"),)
 
 
 class AuthorizedRole(Base):

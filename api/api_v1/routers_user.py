@@ -4,20 +4,20 @@ from typing import Annotated
 from sqlalchemy.exc import IntegrityError
 
 from api.deps import SessionDep, CurrentUser
-from schemas import UserBase, UserCreate, UserUpdate, UserDisplay, UserTypeBase
+from schemas.schemas_user import UserBase, UserCreate, UserUpdate, UserDisplay, UserTypeBase
 from crud.crud_user import crud_user, crud_user_type
 
 router = APIRouter()
 
 
 @router.get("", response_model=list[UserDisplay])
-def get_all_users(db: SessionDep, current_user: CurrentUser):
+async def get_all_users(db: SessionDep, current_user: CurrentUser):
     return crud_user.get_all(db)
 
 
 @router.post("/new", status_code=status.HTTP_201_CREATED)
-def create_user(request: UserCreate, db: SessionDep,
-                current_user: CurrentUser):
+async def create_user(request: UserCreate, db: SessionDep):
+                # current_user: CurrentUser):
     try:
         return crud_user.create(db, obj_in=request)
     except IntegrityError:
@@ -25,7 +25,7 @@ def create_user(request: UserCreate, db: SessionDep,
 
 
 @router.put("/update/{id}", response_model=UserDisplay)
-def update_user(id: int, db: SessionDep, user_update: UserUpdate,
+async def update_user(id: int, db: SessionDep, user_update: UserUpdate,
                 current_user: CurrentUser):
     print(user_update)
     try:

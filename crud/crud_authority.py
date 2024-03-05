@@ -1,5 +1,5 @@
 from crud import CRUDBase
-from models import Application, TransactionKiosk, Authority, AuthorizedRole, AssignedRole
+from models.models_authority import Application, Permission, Authority, AuthorizedRole, AssignedRole
 
 
 class CRUDApplication(CRUDBase):
@@ -13,7 +13,7 @@ class CRUDTransactionKiosk(CRUDBase):
     pass
 
 
-crud_transaction_kiosk = CRUDTransactionKiosk(TransactionKiosk)
+crud_transaction_kiosk = CRUDTransactionKiosk(Permission)
 
 
 class CRUDAuthority(CRUDBase):
