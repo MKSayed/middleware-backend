@@ -1,4 +1,4 @@
-from crud import CRUDBase
+from crud.base import CRUDBase
 from models.models_authority import Application, Permission, Authority, AuthorizedRole, AssignedRole
 
 
@@ -9,11 +9,11 @@ class CRUDApplication(CRUDBase):
 crud_application = CRUDApplication(Application)
 
 
-class CRUDTransactionKiosk(CRUDBase):
+class CRUDPermission(CRUDBase):
     pass
 
 
-crud_transaction_kiosk = CRUDTransactionKiosk(Permission)
+crud_permission = CRUDPermission(Permission)
 
 
 class CRUDAuthority(CRUDBase):

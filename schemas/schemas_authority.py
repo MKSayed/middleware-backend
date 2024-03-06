@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Optional, ClassVar
+from typing import Optional, ClassVar, Union
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -25,7 +25,6 @@ class PermissionBase(BaseModel):
 class PermissionCreate(PermissionBase):
     expiry_date: ClassVar[date]
     creation_date: ClassVar[date]
-    fk_applicationnum: ClassVar[int]
 
 
 class AuthorityBase(BaseModel):
@@ -46,6 +45,11 @@ class AuthorizedRoleBase(BaseModel):
     name: Optional[str] = None
     creation_date: Optional[date] = None
     expiry_date: Optional[date] = None
+
+
+class AuthorizedRoleCreate(AuthorizedRoleBase):
+    creation_date: ClassVar[date]
+    expiry_date: ClassVar[date]
 
 
 class AssignedRoleBase(BaseModel):

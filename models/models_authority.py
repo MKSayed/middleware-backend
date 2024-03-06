@@ -11,20 +11,20 @@ from core.database import Base
 class Application(Base):
     __tablename__ = 'APPLICATION'
 
-    num: Mapped[int] = mapped_column("NUM", SmallInteger, primary_key=True, index=True)
+    num: Mapped[int] = mapped_column("NUM", SmallInteger, primary_key=True, index=True, autoincrement=False)
     name: Mapped[str] = mapped_column("NAME", String(30))
 
 
 class Permission(Base):
     __tablename__ = "PERMISSION"
 
-    number: Mapped[int] = mapped_column("NUMBER", primary_key=True, index=True)
+    number: Mapped[int] = mapped_column("NUMBER", primary_key=True, index=True, autoincrement=False)
     name: Mapped[str] = mapped_column("NAME", String(20))
     active: Mapped[str] = mapped_column("ACTIVE", CHAR(3))
     expiry_date: Mapped[Optional[date]] = mapped_column("EXPIRY_DATE")
     creation_date: Mapped[date] = mapped_column("CREATION_DATE", server_default=func.current_date())
-    fk_applicationnum: Mapped[Optional[int]] = mapped_column("FK_APPLICATIONNUM", ForeignKey('APPLICATION.NUM'),
-                                                             index=True)
+    fk_applicationnum: Mapped[int] = mapped_column("FK_APPLICATIONNUM", ForeignKey('APPLICATION.NUM'),
+                                                   index=True)
 
 
 class Authority(Base):
@@ -46,9 +46,9 @@ class Authority(Base):
 class AuthorizedRole(Base):
     __tablename__ = "AUTHORIZED_ROLE"
 
-    number: Mapped[int] = mapped_column("NUMBER", SmallInteger, primary_key=True)
+    number: Mapped[int] = mapped_column("NUMBER", SmallInteger, primary_key=True, autoincrement=False)
     name: Mapped[Optional[str]] = mapped_column("NAME", String(50))
-    creation_date: Mapped[Optional[date]] = mapped_column("CREATION_DATE")
+    creation_date: Mapped[Optional[date]] = mapped_column("CREATION_DATE", server_default=func.current_date())
     expiry_date: Mapped[Optional[date]] = mapped_column("EXPIRY_DATE")
 
 

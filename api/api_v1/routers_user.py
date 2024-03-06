@@ -25,9 +25,7 @@ async def create_user(request: UserCreate, db: SessionDep):
 
 
 @router.put("/update/{id}", response_model=UserDisplay)
-async def update_user(id: int, db: SessionDep, user_update: UserUpdate,
-                current_user: CurrentUser):
-    print(user_update)
+async def update_user(id: int, db: SessionDep, user_update: UserUpdate):
     try:
         user = crud_user.get_model_by_attribute(db, "id", id)
         return crud_user.update(db, db_obj=user, obj_in=user_update)

@@ -8,7 +8,7 @@ from jose import jwt
 
 from core.config import settings
 from crud.crud_user import crud_user
-from database import get_db
+from core.database import get_db
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 

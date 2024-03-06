@@ -24,10 +24,16 @@ class CRUDUser(CRUDBase):
 
     def update(self, db: Session, *, db_obj: User, obj_in: UserUpdate) -> User:
         update_data = obj_in.model_dump(exclude_unset=True)
-        if "password" in update_data.keys():
-            hashed_password = get_password_hash(update_data["password"])
+
+        # Do not update password if sent as empty string
+        if password := update_data.get("password"):
+            hashed_password = get_password_hash(password)
             del update_data["password"]
             update_data["password"] = hashed_password
+        else:
+            # Make sure no empty string is being sent to database
+            del update_data["password"]
+
         return super().update(db, db_obj=db_obj, obj_in=update_data)
 
 
