@@ -32,7 +32,10 @@ class CRUDUser(CRUDBase):
             update_data["password"] = hashed_password
         else:
             # Make sure no empty string is being sent to database
-            del update_data["password"]
+            try:
+                del update_data["password"]
+            except KeyError:
+                pass
 
         return super().update(db, db_obj=db_obj, obj_in=update_data)
 

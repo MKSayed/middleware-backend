@@ -1,8 +1,8 @@
 from datetime import date
-from typing import Optional
+from typing import Optional, List
 
 from sqlalchemy import (String, SmallInteger, PrimaryKeyConstraint, ForeignKey, CHAR)
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from core.database import Base
@@ -13,6 +13,8 @@ class Application(Base):
 
     num: Mapped[int] = mapped_column("NUM", SmallInteger, primary_key=True, index=True, autoincrement=False)
     name: Mapped[str] = mapped_column("NAME", String(30))
+
+    permissions: Mapped[List["Permission"]] = relationship(back_populates="application")
 
 
 class Permission(Base):
@@ -25,12 +27,13 @@ class Permission(Base):
     creation_date: Mapped[date] = mapped_column("CREATION_DATE", server_default=func.current_date())
     fk_applicationnum: Mapped[int] = mapped_column("FK_APPLICATIONNUM", ForeignKey('APPLICATION.NUM'),
                                                    index=True)
+    application: Mapped["Application"] = relationship(back_populates="permissions")
 
 
 class Authority(Base):
     __tablename__ = "AUTHORITY"
 
-    serial: Mapped[int] = mapped_column("SERIAL")
+    serial: Mapped[int] = mapped_column("SERIAL", autoincrement=True)
     start_date: Mapped[date] = mapped_column("START_DATE")
     end_date: Mapped[Optional[date]] = mapped_column("END_DATE")
     active: Mapped[Optional[str]] = mapped_column("ACTIVE", CHAR(1))
@@ -38,6 +41,9 @@ class Authority(Base):
                                                       ForeignKey("PERMISSION.NUMBER"), index=True)
     fk_authorized_rnumber: Mapped[int] = mapped_column("FK_AUTHORIZED_RNUMBER",
                                                        ForeignKey("AUTHORIZED_ROLE.NUMBER"), index=True)
+
+    permission: Mapped["Permission"] = relationship(lazy="joined")
+    authorized_role: Mapped["AuthorizedRole"] = relationship(lazy="joined")
 
     __table_args__ = (
         PrimaryKeyConstraint("FK_PERMISSION_NUMBER", "FK_AUTHORIZED_RNUMBER"),)
@@ -56,7 +62,7 @@ class AssignedRole(Base):
     __tablename__ = "ASSIGNED_ROLE"
 
     active: Mapped[Optional[str]] = mapped_column("ACTIVE", CHAR(1))
-    creation_date: Mapped[date] = mapped_column("CREATION_DATE")
+    creation_date: Mapped[date] = mapped_column("CREATION_DATE",)
     fk_authorized_rnumber: Mapped[int] = mapped_column("FK_AUTHORIZED_RNUMBER",
                                                        ForeignKey("AUTHORIZED_ROLE.NUMBER"), index=True)
     fk_userid: Mapped[int] = mapped_column("FK_USERID", ForeignKey("USER.ID"), index=True)

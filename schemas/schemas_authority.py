@@ -1,7 +1,8 @@
+import datetime
 from datetime import date
-from typing import Optional, ClassVar, Union
+from typing import Optional, ClassVar, Union, Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ApplicationBase(BaseModel):
@@ -17,14 +18,25 @@ class PermissionBase(BaseModel):
     number: int
     name: str
     active: str = Field(max_length=3)
-    expiry_date: date
+    expiry_date: Optional[date]
     creation_date: date
     fk_applicationnum: int
 
 
 class PermissionCreate(PermissionBase):
-    expiry_date: ClassVar[date]
-    creation_date: ClassVar[date]
+    expiry_date: ClassVar
+    creation_date: ClassVar
+
+
+class PermissionUpdate(PermissionBase):
+    expiry_date: ClassVar
+    creation_date: ClassVar
+    fk_applicationnum: ClassVar
+
+
+class PermissionDisplay(PermissionBase):
+    fk_applicationnum: ClassVar
+    application: ApplicationBase
 
 
 class AuthorityBase(BaseModel):
@@ -36,6 +48,34 @@ class AuthorityBase(BaseModel):
     active: Optional[str] = None
     fk_permission_number: int
     fk_authorized_rnumber: int
+
+
+class AuthorityCreate(AuthorityBase):
+    serial: ClassVar
+    end_date: ClassVar
+
+
+class AuthorityUpdate(AuthorityCreate):
+    fk_permission_number: ClassVar
+    fk_authorized_rnumber: ClassVar
+    end_date: ClassVar
+
+
+class AuthorityDisplay(AuthorityBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    class AuthorityPermissionDisplay(BaseModel):
+        number: int
+        name: str
+
+    class AuthorityAuthorizedRoleDisplay(BaseModel):
+        number: int
+        name: Optional[str] = None
+
+    fk_permission_number: ClassVar
+    fk_authorized_rnumber: ClassVar
+    permission: AuthorityPermissionDisplay
+    authorized_role: AuthorityAuthorizedRoleDisplay
 
 
 class AuthorizedRoleBase(BaseModel):
@@ -55,8 +95,13 @@ class AuthorizedRoleCreate(AuthorizedRoleBase):
 class AssignedRoleBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    active: Optional[str] = None
-    creation_date: date
+    active: Optional[str] = Field(None, max_length=1)
+    creation_date: date = Field(default_factory=date.today)
     fk_authorized_rnumber: int
     fk_userid: int
 
+    # Make sure to override the field with current date if user sent it.
+    @field_validator("creation_date", mode="before")
+    @classmethod
+    def set_default_created_at(cls, v: Any):
+        return datetime.date.today()

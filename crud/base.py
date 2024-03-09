@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from sqlalchemy import Select, delete
+from sqlalchemy import Select, delete, insert
 
 from core.database import Base
 
@@ -47,18 +47,23 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return db.scalars(stmt).all()
 
     def create(self, db: Session, *, obj_in: CreateSchemaType) -> ModelType:
-        obj_in_data = jsonable_encoder(obj_in)
-        db_obj = self.model(**obj_in_data)
+        # obj_in_data = jsonable_encoder(obj_in)
+        db_obj = self.model(**obj_in.model_dump(exclude_none=True))
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
         return db_obj
+        # stmt = insert(self.model).values(**obj_in.model_dump(exclude_none=True))
+        # db_obj = db.execute(stmt)
+        # db.commit()
+        # db.refresh(db_obj)
+        # return obj_in
 
     def update(self, db: Session, *, db_obj: ModelType, obj_in: Union[UpdateSchemaType, Dict[str, Any]]) -> ModelType:
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
-            update_data = obj_in.model_dump(exclude_unset=True)
+            update_data = obj_in.model_dump(exclude_unset=True, exclude_none=True)
         for field in update_data:
             # getattr will get the current value of the field
             # only update fields different values than the current

@@ -10,7 +10,7 @@ from crud.crud_user import crud_user, crud_user_type
 router = APIRouter()
 
 
-@router.get("", response_model=list[UserDisplay])
+@router.get("/all-users", response_model=list[UserDisplay])
 async def get_all_users(db: SessionDep, current_user: CurrentUser):
     return crud_user.get_all(db)
 
