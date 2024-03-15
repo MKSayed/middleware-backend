@@ -16,7 +16,7 @@ class UserBase(BaseModel):
     username: str
     name: str
     password: str
-    status: str = Field(pattern=r'[0123]$')
+    status: str = Field(pattern=r'^[0123]$')
     national_id: Optional[str] = None
     tax_id: Optional[int] = None
     fk_user_typecd: Optional[int] = None

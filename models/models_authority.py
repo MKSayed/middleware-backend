@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Optional, List
 
-from sqlalchemy import (String, SmallInteger, PrimaryKeyConstraint, ForeignKey, CHAR)
+from sqlalchemy import (String, SmallInteger, PrimaryKeyConstraint, ForeignKey, CHAR, FetchedValue)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -33,7 +33,7 @@ class Permission(Base):
 class Authority(Base):
     __tablename__ = "AUTHORITY"
 
-    serial: Mapped[int] = mapped_column("SERIAL", autoincrement=True)
+    serial: Mapped[int] = mapped_column("SERIAL", server_default=FetchedValue(), autoincrement=True)
     start_date: Mapped[date] = mapped_column("START_DATE")
     end_date: Mapped[Optional[date]] = mapped_column("END_DATE")
     active: Mapped[Optional[str]] = mapped_column("ACTIVE", CHAR(1))
@@ -44,6 +44,7 @@ class Authority(Base):
 
     permission: Mapped["Permission"] = relationship(lazy="joined")
     authorized_role: Mapped["AuthorizedRole"] = relationship(lazy="joined")
+
 
     __table_args__ = (
         PrimaryKeyConstraint("FK_PERMISSION_NUMBER", "FK_AUTHORIZED_RNUMBER"),)

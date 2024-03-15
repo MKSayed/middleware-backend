@@ -25,12 +25,7 @@ crud_permission = CRUDPermission(Permission)
 
 
 class CRUDAuthority(CRUDBase):
-    def create(self, db: Session, *, obj_in: AuthorityCreate):
-        stmt = insert(Authority).values(**obj_in.model_dump(exclude_unset=True, exclude_none=True))
-        db_obj = db.execute(stmt)
-        db.commit()
-        db.refresh(db_obj)
-        return obj_in
+    pass
 
 
 crud_authority = CRUDAuthority(Authority)

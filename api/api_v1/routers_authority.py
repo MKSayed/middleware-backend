@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
 from typing import List
+from models import models_kiosk, models_sevice
 
 from api.deps import SessionDep, CurrentUser
 from crud.crud_authority import (crud_application, crud_permission, crud_authorized_role,
@@ -106,3 +107,4 @@ def create_assigned_role(request: List[AssignedRoleBase], db: SessionDep):
 @router.get("/current-assigned-roles/{fk_userid}", response_model=List[AssignedRoleBase])
 def get_current_assigned_roles(fk_userid: int, db: SessionDep):
     return crud_assigned_role.get_current_roles(db, fk_userid=fk_userid)
+

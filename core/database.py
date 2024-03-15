@@ -11,7 +11,7 @@ connection_url = URL.create(
     # password="tiger",
     host="localhost",
     # port=1434,
-    database="devdb",
+    database="tempdb2",
     query={
         "driver": "ODBC Driver 17 for SQL Server",
         "TrustServerCertificate": "yes",
