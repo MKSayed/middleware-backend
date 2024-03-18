@@ -9,14 +9,14 @@ class ApplicationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     num: int
-    name: str
+    name: str = Field(max_length=30)
 
 
 class PermissionBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     number: int
-    name: str
+    name: str = Field(max_length=20)
     active: str = Field(max_length=3)
     expiry_date: Optional[date]
     creation_date: date
@@ -45,7 +45,7 @@ class AuthorityBase(BaseModel):
     serial: int
     start_date: date
     end_date: Optional[date] = None
-    active: Optional[str] = None
+    active: Optional[str] = Field(None, max_length=1)
     fk_permission_number: int
     fk_authorized_rnumber: int
 
@@ -82,7 +82,7 @@ class AuthorizedRoleBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     number: int
-    name: Optional[str] = None
+    name: Optional[str] = Field(None, max_length=50)
     creation_date: Optional[date] = None
     expiry_date: Optional[date] = None
 
@@ -100,8 +100,10 @@ class AssignedRoleBase(BaseModel):
     fk_authorized_rnumber: int
     fk_userid: int
 
-    # Make sure to override the field with current date if user sent it.
-    @field_validator("creation_date", mode="before")
-    @classmethod
-    def set_default_created_at(cls, v: Any):
-        return datetime.date.today()
+# todo create AssignedRoleCreate Class without creation_date
+
+    # Make sure to override the field with current date if user sends it.
+    # @field_validator("creation_date", mode="before")
+    # @classmethod
+    # def set_default_created_at(cls, v: Any):
+    #     return datetime.date.today()

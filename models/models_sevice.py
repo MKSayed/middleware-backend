@@ -12,10 +12,13 @@ class Service(Base):
     id: Mapped[str] = mapped_column("ID", String(5), primary_key=True)
     ar_name: Mapped[Optional[str]] = mapped_column("AR_NAME", String(40))
     eng_name: Mapped[Optional[str]] = mapped_column("ENG_NAME", String(40))
-    fk_moduleser: Mapped[Optional[int]] = mapped_column("FK_MODULESER", SmallInteger)
-    fk_serviceid: Mapped[Optional[str]] = mapped_column("FK_SERVICEID", String(5))
-    fk_service_grouno: Mapped[Optional[int]] = mapped_column("FK_SERVICE_GROUNO", SmallInteger)
-    fk_providerid: Mapped[Optional[int]] = mapped_column("FK_PROVIDERID", SmallInteger)
+    fk_moduleser: Mapped[Optional[int]] = mapped_column("FK_MODULESER", ForeignKey("MODULE.SER"), index=True)
+    # looks like this column was added by mistake
+    # fk_serviceid: Mapped[Optional[str]] = mapped_column("FK_SERVICEID", String(5))
+    fk_service_grouno: Mapped[Optional[int]] = mapped_column("FK_SERVICE_GROUNO",
+                                                             ForeignKey("SERVICE_GROUP.NO"), index=True)
+    fk_providerid: Mapped[Optional[int]] = mapped_column("FK_PROVIDERID",
+                                                         ForeignKey("PROVIDER.ID"), index=True)
 
 
 class ServiceCharge(Base):
@@ -28,8 +31,10 @@ class ServiceCharge(Base):
     to_value: Mapped[float] = mapped_column("TO", DECIMAL(9, 2), nullable=False)
     active_dt: Mapped[Optional[date]] = mapped_column("ACTIVE_DT",)
     slap: Mapped[float] = mapped_column("SLAP", DECIMAL(9, 2), nullable=False)
-    fk_commission_tcd: Mapped[Optional[int]] = mapped_column("FK_COMMESSION_TCD", SmallInteger)
-    fk_commission_vcd: Mapped[Optional[int]] = mapped_column("FK_COMMESSION_VCD", SmallInteger)
+    fk_commission_tcd: Mapped[Optional[int]] = mapped_column("FK_COMMESSION_TCD",
+                                                             ForeignKey("COMMISSION_TYPE.CD"), index=True)
+    fk_commission_vcd: Mapped[Optional[int]] = mapped_column("FK_COMMESSION_VCD",
+                                                             ForeignKey("COMMISSION_VALUE_TYPE.CD"), index=True)
 
 
 class ServiceGroup(Base):
@@ -44,8 +49,10 @@ class ServiceParameter(Base):
 
     ser: Mapped[int] = mapped_column("SER", SmallInteger, primary_key=True)
     service_value: Mapped[str] = mapped_column("SERVICE_VALUE", String(200), nullable=False)
-    fk_serviceid: Mapped[str] = mapped_column("FK_SERVICEID", String(5), nullable=False)
-    fk_service_paracd: Mapped[Optional[int]] = mapped_column("FK_SERVICE_PARACD", SmallInteger)
+    fk_serviceid: Mapped[str] = mapped_column("FK_SERVICEID", ForeignKey("SERVICE.ID"),
+                                              nullable=False, index=True)
+    fk_service_paracd: Mapped[Optional[int]] = mapped_column("FK_SERVICE_PARACD",
+                                                             ForeignKey("SERVICE_PARAMETER_TYPE.CD"), index=True)
 
 
 class ServiceParameterType(Base):
@@ -67,8 +74,8 @@ class ServicePrice(Base):
     max_value: Mapped[Optional[float]] = mapped_column("MAX_VALUE", DECIMAL(6, 2))
     type: Mapped[Optional[str]] = mapped_column("TYPE", String(8))
     list_value: Mapped[Optional[str]] = mapped_column("LIST_VALUE", String(36))
-    fk_serviceid: Mapped[Optional[str]] = mapped_column("FK_SERVICEID", String(5))
-    fk_currencyid: Mapped[Optional[int]] = mapped_column("FK_CURRENCYID", SmallInteger)
+    fk_serviceid: Mapped[Optional[str]] = mapped_column("FK_SERVICEID", ForeignKey("SERVICE.ID"), index=True)
+    fk_currencyid: Mapped[Optional[int]] = mapped_column("FK_CURRENCYID", ForeignKey("CURRENCY.ID"), index=True)
 
 
 class Provider(Base):
@@ -77,13 +84,6 @@ class Provider(Base):
     id: Mapped[int] = mapped_column("ID", SmallInteger, primary_key=True)
     ar_name: Mapped[str] = mapped_column("AR_NAME", String(40), nullable=False)
     eng_name: Mapped[str] = mapped_column("ENG_NAME", String(40), nullable=False)
-
-
-class PaymentType(Base):
-    __tablename__ = "PAYMENT_TYPE"
-
-    cd: Mapped[int] = mapped_column("CD", SmallInteger, primary_key=True)
-    descr: Mapped[str] = mapped_column("DESCR", String(30), nullable=False)
 
 
 class Currency(Base):

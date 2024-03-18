@@ -17,10 +17,15 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires: datetime
+    username: str
+    national_id: str
 
 
 @router.post("", response_model=Token)
 async def login_access_token(session: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]) -> Token:
+    """
+    OAuth2 compatible token login, get an access token for future requests
+    """
     user = crud_user.get_model_by_attribute(session, "username", form_data.username)
     if not user or not verify_password(form_data.password, user.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
@@ -30,4 +35,4 @@ async def login_access_token(session: SessionDep, form_data: Annotated[OAuth2Pas
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     expires = datetime.now() + access_token_expires
     return Token(access_token=create_access_token(data={"sub": user.username}, expires_delta=access_token_expires),
-                 expires=expires)
+                 expires=expires, username=user.username, national_id=user.national_id)

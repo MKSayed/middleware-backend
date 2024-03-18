@@ -24,7 +24,7 @@ class Permission(Base):
     name: Mapped[str] = mapped_column("NAME", String(20))
     active: Mapped[str] = mapped_column("ACTIVE", CHAR(3))
     expiry_date: Mapped[Optional[date]] = mapped_column("EXPIRY_DATE")
-    creation_date: Mapped[date] = mapped_column("CREATION_DATE", server_default=func.current_date())
+    creation_date: Mapped[date] = mapped_column("CREATION_DATE", default=func.current_date())
     fk_applicationnum: Mapped[int] = mapped_column("FK_APPLICATIONNUM", ForeignKey('APPLICATION.NUM'),
                                                    index=True)
     application: Mapped["Application"] = relationship(back_populates="permissions")
@@ -45,7 +45,6 @@ class Authority(Base):
     permission: Mapped["Permission"] = relationship(lazy="joined")
     authorized_role: Mapped["AuthorizedRole"] = relationship(lazy="joined")
 
-
     __table_args__ = (
         PrimaryKeyConstraint("FK_PERMISSION_NUMBER", "FK_AUTHORIZED_RNUMBER"),)
 
@@ -55,7 +54,7 @@ class AuthorizedRole(Base):
 
     number: Mapped[int] = mapped_column("NUMBER", SmallInteger, primary_key=True, autoincrement=False)
     name: Mapped[Optional[str]] = mapped_column("NAME", String(50))
-    creation_date: Mapped[Optional[date]] = mapped_column("CREATION_DATE", server_default=func.current_date())
+    creation_date: Mapped[Optional[date]] = mapped_column("CREATION_DATE", default=func.current_date())
     expiry_date: Mapped[Optional[date]] = mapped_column("EXPIRY_DATE")
 
 
@@ -63,7 +62,7 @@ class AssignedRole(Base):
     __tablename__ = "ASSIGNED_ROLE"
 
     active: Mapped[Optional[str]] = mapped_column("ACTIVE", CHAR(1))
-    creation_date: Mapped[date] = mapped_column("CREATION_DATE",)
+    creation_date: Mapped[date] = mapped_column("CREATION_DATE", default=func.current_date())
     fk_authorized_rnumber: Mapped[int] = mapped_column("FK_AUTHORIZED_RNUMBER",
                                                        ForeignKey("AUTHORIZED_ROLE.NUMBER"), index=True)
     fk_userid: Mapped[int] = mapped_column("FK_USERID", ForeignKey("USER.ID"), index=True)

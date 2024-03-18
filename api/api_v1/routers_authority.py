@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
 from typing import List
-from models import models_kiosk, models_sevice
+from models import models_kiosk, models_sevice, models_commission, models_address, models_connector, models_equipment
 
 from api.deps import SessionDep, CurrentUser
 from crud.crud_authority import (crud_application, crud_permission, crud_authorized_role,
