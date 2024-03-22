@@ -78,7 +78,7 @@ class AuthorityDisplay(AuthorityBase):
     authorized_role: AuthorityAuthorizedRoleDisplay
 
 
-class AuthoritiesCreateOrUpdate(BaseModel):
+class AuthorityCreateOrUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     authorized_rname: str = Field(None, max_length=50)
     authorized_rnumber: int
@@ -106,6 +106,13 @@ class AssignedRoleBase(BaseModel):
     creation_date: date = Field(default_factory=date.today)
     fk_authorized_rnumber: int
     fk_userid: int
+
+
+class AssignedRoleCreateOrUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    user_id: int
+    role_numbers: List[int]
 
 # todo create AssignedRoleCreate Class without creation_date
 

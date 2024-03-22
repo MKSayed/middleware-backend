@@ -8,7 +8,7 @@ from crud.crud_authority import (crud_application, crud_permission, crud_authori
 
 from schemas.schemas_authority import (ApplicationBase, AuthorizedRoleCreate, AuthorityCreate, AuthorityDisplay,
                                        PermissionDisplay, PermissionUpdate, PermissionCreate, AuthorityUpdate,
-                                       AssignedRoleBase, AuthoritiesCreateOrUpdate)
+                                       AssignedRoleBase, AuthorityCreateOrUpdate, AssignedRoleCreateOrUpdate)
 
 router = APIRouter()
 
@@ -63,12 +63,13 @@ async def get_all_roles_short(db: SessionDep):
 @router.get("/get-role-permissions/{role_number}")
 async def get_role_short(db: SessionDep, role_number: int):
     role_data = crud_authorized_role.get_model_by_attribute(db, "number", role_number)
-    role_permissions = crud_authorized_role.get_active_role_permissions(db, role_number)
+    role_permissions = crud_authorized_role.get_active_permissions(db, role_number)
 
     role_permissions_short = [{"number": permission.number, "name": permission.name}
                               for permission in role_permissions]
 
     return {"roleData": {"name": role_data.name, "number": role_data.number, "permissions": role_permissions_short}}
+
 
 @router.post("/new-role")
 def create_role(request: AuthorizedRoleCreate, db: SessionDep):
@@ -99,7 +100,7 @@ def create_role(pk, request: AuthorityUpdate, db: SessionDep):
 
 
 @router.post("/manage-role-authorities", status_code=status.HTTP_200_OK)
-def manage_authority(request: AuthoritiesCreateOrUpdate, db: SessionDep):
+def manage_role_authority(request: AuthorityCreateOrUpdate, db: SessionDep):
     authorized_rnumber = request.authorized_rnumber
     permission_numbers = request.permission_numbers
     current_permission_numbers = []
@@ -128,23 +129,32 @@ def manage_authority(request: AuthoritiesCreateOrUpdate, db: SessionDep):
     db.commit()
 
 
-# AssignedRole related endpoints
-@router.post("/new-assigned-roles")
-def create_assigned_role(request: List[AssignedRoleBase], db: SessionDep):
-    updated_roles = 0
-    for assigned_role in request:
-        if crud_assigned_role.check_role_exists(db=db, fk_authorized_rnumber=assigned_role.fk_authorized_rnumber,
-                                                fk_userid=assigned_role.fk_userid):
-            continue
-        else:
-            updated_roles += 1
-            crud_assigned_role.create(db=db, obj_in=assigned_role)
-    if updated_roles == 0:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="No changes.")
-    return {"message": "Role(s) has been added successfully"}
+# AssignedRole related e    ndpoints
+@router.post("/manage-user-roles", status_code=status.HTTP_200_OK)
+def manage_user_roles(request: AssignedRoleCreateOrUpdate, db: SessionDep):
+    user_id = request.user_id
+    role_numbers = request.role_numbers
+    current_assigned_roles_numbers = []
+    current_assigned_roles = crud_assigned_role.get_models_by_attribute(db, "fk_userid", user_id)
+
+    # Deactivate/reactivate existing roles for this user
+    for current_assigned_role in current_assigned_roles:
+        current_assigned_roles_numbers.append(current_assigned_role.fk_authorized_rnumber)
+        if current_assigned_role.fk_authorized_rnumber not in role_numbers:
+            current_assigned_role.active = '0'
+        elif str(current_assigned_role.active) == '0':
+            current_assigned_role.active = '1'
+
+    # Create newly set authorities for this role
+    for role_number in role_numbers:
+        if role_number not in current_assigned_roles_numbers:
+            crud_assigned_role.create(db, obj_in={"fk_userid": user_id,
+                                                  "fk_authorized_rnumber": role_number,
+                                                  "active": 1})
+    # Commit all changes in this session
+    db.commit()
 
 
 @router.get("/current-assigned-roles/{fk_userid}", response_model=List[AssignedRoleBase])
 def get_current_assigned_roles(fk_userid: int, db: SessionDep):
-    return crud_assigned_role.get_current_roles(db, fk_userid=fk_userid)
-
+    return crud_assigned_role.get_current_active_roles(db, fk_userid=fk_userid)

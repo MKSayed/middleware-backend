@@ -33,7 +33,7 @@ crud_authority = CRUDAuthority(Authority)
 
 class CRUDAuthorizedRole(CRUDBase):
     @staticmethod
-    def get_active_role_permissions(db: Session, number: int):
+    def get_active_permissions(db: Session, number: int):
         stmt = Select(Authority).where(Authority.fk_authorized_rnumber == number,
                                        Authority.active == '1')
         authorities = db.scalars(stmt).all()
@@ -55,9 +55,9 @@ class CRUDAssignedRole(CRUDBase):
         return db.scalar(stmt)
 
     @staticmethod
-    def get_current_roles(db: Session, fk_userid: int):
-        stmt = Select(AssignedRole).where(AssignedRole.fk_userid == fk_userid)
-        return db.scalars(stmt)
+    def get_current_active_roles(db: Session, fk_userid: int):
+        stmt = Select(AssignedRole).where(AssignedRole.fk_userid == fk_userid, AssignedRole.active == '1')
+        return db.scalars(stmt).all()
 
 
 crud_assigned_role = CRUDAssignedRole(AssignedRole)
