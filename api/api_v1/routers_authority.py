@@ -8,7 +8,7 @@ from crud.crud_authority import (crud_application, crud_permission, crud_authori
 
 from schemas.schemas_authority import (ApplicationBase, AuthorizedRoleCreate, AuthorityCreate, AuthorityDisplay,
                                        PermissionDisplay, PermissionUpdate, PermissionCreate, AuthorityUpdate,
-                                       AssignedRoleBase)
+                                       AssignedRoleBase, AuthoritiesCreateOrUpdate)
 
 router = APIRouter()
 
@@ -34,7 +34,7 @@ async def get_all_permissions(db: SessionDep):
 
 
 @router.get("/all-permissions-short", response_model=List[AuthorityDisplay.AuthorityPermissionDisplay])
-async def get_all_permissions(db: SessionDep):
+async def get_all_permissions_short(db: SessionDep):
     return crud_permission.get_all(db)
 
 
@@ -56,9 +56,19 @@ def get_all_roles(db: SessionDep):
 
 
 @router.get("/all-roles-short", response_model=List[AuthorityDisplay.AuthorityAuthorizedRoleDisplay])
-async def get_all_permissions(db: SessionDep):
+async def get_all_roles_short(db: SessionDep):
     return crud_authorized_role.get_all(db)
 
+
+@router.get("/get-role-permissions/{role_number}")
+async def get_role_short(db: SessionDep, role_number: int):
+    role_data = crud_authorized_role.get_model_by_attribute(db, "number", role_number)
+    role_permissions = crud_authorized_role.get_active_role_permissions(db, role_number)
+
+    role_permissions_short = [{"number": permission.number, "name": permission.name}
+                              for permission in role_permissions]
+
+    return {"roleData": {"name": role_data.name, "number": role_data.number, "permissions": role_permissions_short}}
 
 @router.post("/new-role")
 def create_role(request: AuthorizedRoleCreate, db: SessionDep):
@@ -86,6 +96,36 @@ def create_authority(request: AuthorityCreate, db: SessionDep):
 def create_role(pk, request: AuthorityUpdate, db: SessionDep):
     db_obj = crud_authority.get_model_by_attribute(db, "serial", pk)
     return crud_authorized_role.update(db, db_obj=db_obj, obj_in=request)
+
+
+@router.post("/manage-role-authorities", status_code=status.HTTP_200_OK)
+def manage_authority(request: AuthoritiesCreateOrUpdate, db: SessionDep):
+    authorized_rnumber = request.authorized_rnumber
+    permission_numbers = request.permission_numbers
+    current_permission_numbers = []
+    current_authorities = crud_authority.get_models_by_attribute(db, "fk_authorized_rnumber", authorized_rnumber)
+
+    # Deactivate/reactivate existing authorities for this role
+    for current_authority in current_authorities:
+        current_permission_numbers.append(current_authority.fk_permission_number)
+        if current_authority.fk_permission_number not in permission_numbers:
+            current_authority.active = '0'
+        elif str(current_authority.active) == '0':
+            current_authority.active = '1'
+
+    # Create newly set authorities for this role
+    for permission_number in permission_numbers:
+        if permission_number not in current_permission_numbers:
+            crud_authority.create(db, obj_in={"fk_authorized_rnumber": authorized_rnumber,
+                                              "fk_permission_number": permission_number,
+                                              "active": 1})
+
+    # Update role name
+    authorized_role = crud_authorized_role.get_model_by_attribute(db, "number", authorized_rnumber)
+    authorized_role.name = request.authorized_rname
+
+    # Commit all changes in this session
+    db.commit()
 
 
 # AssignedRole related endpoints

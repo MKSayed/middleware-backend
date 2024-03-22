@@ -34,7 +34,7 @@ class Authority(Base):
     __tablename__ = "AUTHORITY"
 
     serial: Mapped[int] = mapped_column("SERIAL", server_default=FetchedValue(), autoincrement=True)
-    start_date: Mapped[date] = mapped_column("START_DATE")
+    start_date: Mapped[date] = mapped_column("START_DATE", default=func.current_date())
     end_date: Mapped[Optional[date]] = mapped_column("END_DATE")
     active: Mapped[Optional[str]] = mapped_column("ACTIVE", CHAR(1))
     fk_permission_number: Mapped[int] = mapped_column("FK_PERMISSION_NUMBER",

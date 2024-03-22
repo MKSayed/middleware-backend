@@ -1,6 +1,6 @@
 import datetime
 from datetime import date
-from typing import Optional, ClassVar, Union, Any
+from typing import Optional, ClassVar, List
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -76,6 +76,13 @@ class AuthorityDisplay(AuthorityBase):
     fk_authorized_rnumber: ClassVar
     permission: AuthorityPermissionDisplay
     authorized_role: AuthorityAuthorizedRoleDisplay
+
+
+class AuthoritiesCreateOrUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    authorized_rname: str = Field(None, max_length=50)
+    authorized_rnumber: int
+    permission_numbers: List[int]
 
 
 class AuthorizedRoleBase(BaseModel):

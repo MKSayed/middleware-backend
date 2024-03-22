@@ -32,7 +32,16 @@ crud_authority = CRUDAuthority(Authority)
 
 
 class CRUDAuthorizedRole(CRUDBase):
-    pass
+    @staticmethod
+    def get_active_role_permissions(db: Session, number: int):
+        stmt = Select(Authority).where(Authority.fk_authorized_rnumber == number,
+                                       Authority.active == '1')
+        authorities = db.scalars(stmt).all()
+        permissions = []
+        for authority in authorities:
+            permissions.append(authority.permission)
+
+        return permissions
 
 
 crud_authorized_role = CRUDAuthorizedRole(AuthorizedRole)
