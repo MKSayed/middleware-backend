@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 
 from crud.base import CRUDBase
 from models.models_authority import Application, Permission, Authority, AuthorizedRole, AssignedRole
-from schemas.schemas_authority import AuthorityCreate
 
 
 class CRUDApplication(CRUDBase):

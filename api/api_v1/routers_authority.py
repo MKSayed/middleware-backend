@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException, status
 from typing import List
-from models import models_kiosk, models_sevice, models_commission, models_address, models_connector, models_equipment
 
 from api.deps import SessionDep, CurrentUser
 from crud.crud_authority import (crud_application, crud_permission, crud_authorized_role,
@@ -44,7 +43,7 @@ async def create_permission(request: PermissionCreate, db: SessionDep):
 
 
 @router.put("/update-permission/{pk}")
-async def create_permission(pk, request: PermissionUpdate, db: SessionDep):
+async def update_permission(pk, request: PermissionUpdate, db: SessionDep):
     db_obj = crud_permission.get_model_by_attribute(db, "number", pk)
     return crud_permission.update(db, db_obj=db_obj, obj_in=request)
 
@@ -61,7 +60,7 @@ async def get_all_roles_short(db: SessionDep):
 
 
 @router.get("/get-role-permissions/{role_number}")
-async def get_role_short(db: SessionDep, role_number: int):
+async def get_role_permissions(db: SessionDep, role_number: int):
     role_data = crud_authorized_role.get_model_by_attribute(db, "number", role_number)
     role_permissions = crud_authorized_role.get_active_permissions(db, role_number)
 
@@ -77,7 +76,7 @@ def create_role(request: AuthorizedRoleCreate, db: SessionDep):
 
 
 @router.put("/update-role/{pk}")
-def create_role(pk, request: AuthorizedRoleCreate, db: SessionDep):
+def update_role(pk, request: AuthorizedRoleCreate, db: SessionDep):
     db_obj = crud_authorized_role.get_model_by_attribute(db, "number", pk)
     return crud_authorized_role.update(db, db_obj=db_obj, obj_in=request)
 
@@ -94,7 +93,7 @@ def create_authority(request: AuthorityCreate, db: SessionDep):
 
 
 @router.put("/update-authority/{pk}")
-def create_role(pk, request: AuthorityUpdate, db: SessionDep):
+def update_authority(pk, request: AuthorityUpdate, db: SessionDep):
     db_obj = crud_authority.get_model_by_attribute(db, "serial", pk)
     return crud_authorized_role.update(db, db_obj=db_obj, obj_in=request)
 
@@ -129,7 +128,7 @@ def manage_role_authority(request: AuthorityCreateOrUpdate, db: SessionDep):
     db.commit()
 
 
-# AssignedRole related e    ndpoints
+# AssignedRole related endpoints
 @router.post("/manage-user-roles", status_code=status.HTTP_200_OK)
 def manage_user_roles(request: AssignedRoleCreateOrUpdate, db: SessionDep):
     user_id = request.user_id

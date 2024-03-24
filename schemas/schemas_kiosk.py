@@ -1,11 +1,12 @@
 from pydantic import BaseModel, Field
+from decimal import Decimal
 from typing import Optional
 from datetime import datetime
 
 
 class KioskBase(BaseModel):
     id: int
-    account_no: float = Field(max_digits=10)
+    account_no: Decimal = Field(max_digits=10)
     ar_name: str = Field(max_length=40)
     eng_name: str = Field(max_length=40)
     descr: Optional[str] = Field(None, max_length=100)
@@ -26,7 +27,7 @@ class KioskBase(BaseModel):
 
 class KioskFamilyBase(BaseModel):
     id: int
-    account_no: float = Field(max_digits=10)
+    account_no: Decimal = Field(max_digits=10)
     ar_name: str = Field(max_length=40)
     eng_name: str = Field(max_length=40)
     type: Optional[str] = Field(None, max_length=1)
@@ -43,8 +44,8 @@ class KioskOperatorLogBase(BaseModel):
     id: int = Field(max_digits=14)
     ip_address: Optional[str] = Field(None, max_length=15)
     entrystamp: Optional[datetime] = None
-    aff_field: float = Field(max_digits=10)
-    aff_field2: Optional[float] = Field(None, max_digits=10)
+    aff_field: Decimal = Field(max_digits=10)
+    aff_field2: Optional[Decimal] = Field(None, max_digits=10)
     type: Optional[str] = Field(None, max_length=1)
     fk_kioskid: Optional[int] = None
     fk_permission_number: Optional[int] = None

@@ -9,7 +9,7 @@ class Kiosk(Base):
     __tablename__ = "KIOSK"
 
     id: Mapped[int] = mapped_column("ID", Integer, primary_key=True)
-    account_no: Mapped[float] = mapped_column("ACCOUNT_NO", Numeric(10), nullable=False)
+    account_no: Mapped[Numeric] = mapped_column("ACCOUNT_NO", Numeric(10), nullable=False)
     ar_name: Mapped[str] = mapped_column("AR_NAME", String(40), nullable=False)
     eng_name: Mapped[str] = mapped_column("ENG_NAME", String(40), nullable=False)
     descr: Mapped[Optional[str]] = mapped_column("DESCR", String(100))
@@ -38,7 +38,7 @@ class KioskFamily(Base):
     __tablename__ = "KIOSK_FAMILY"
 
     id: Mapped[int] = mapped_column("ID", Integer, primary_key=True)
-    account_no: Mapped[float] = mapped_column("ACCOUNT_NO", Numeric(10), nullable=False)
+    account_no: Mapped[Numeric] = mapped_column("ACCOUNT_NO", Numeric(10), nullable=False)
     ar_name: Mapped[str] = mapped_column("AR_NAME", String(40), nullable=False)
     eng_name: Mapped[str] = mapped_column("ENG_NAME", String(40), nullable=False)
     type: Mapped[Optional[str]] = mapped_column("TYPE", String(1))
