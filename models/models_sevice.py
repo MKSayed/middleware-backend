@@ -12,7 +12,7 @@ class Service(Base):
     id: Mapped[str] = mapped_column("ID", String(5), primary_key=True)
     ar_name: Mapped[Optional[str]] = mapped_column("AR_NAME", String(40))
     eng_name: Mapped[Optional[str]] = mapped_column("ENG_NAME", String(40))
-    fk_moduleser: Mapped[Optional[int]] = mapped_column("FK_MODULESER", ForeignKey("MODULE.SER"), index=True)
+    fk_moduleid: Mapped[Optional[int]] = mapped_column("FK_MODULEID", ForeignKey("MODULE.ID"), index=True)
     # looks like this column was added by mistake
     # fk_serviceid: Mapped[Optional[str]] = mapped_column("FK_SERVICEID", String(5))
     fk_service_grouno: Mapped[Optional[int]] = mapped_column("FK_SERVICE_GROUNO",

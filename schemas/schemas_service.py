@@ -57,7 +57,7 @@ class ServicePriceBase(BaseModel):
 
 
 class ProviderBase(BaseModel):
-    id: int
+    id: Optional[int] = None
     ar_name: str = Field(max_length=40)
     eng_name: str = Field(max_length=40)
 

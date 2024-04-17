@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, Annotated
 from datetime import datetime
 
 
@@ -41,11 +41,11 @@ class KioskFamilyBase(BaseModel):
 
 
 class KioskOperatorLogBase(BaseModel):
-    id: int = Field(max_digits=14)
+    id: Decimal = Field(max_digits=14)
     ip_address: Optional[str] = Field(None, max_length=15)
     entrystamp: Optional[datetime] = None
     aff_field: Decimal = Field(max_digits=10)
-    aff_field2: Optional[Decimal] = Field(None, max_digits=10)
+    aff_field2: Annotated[Decimal, Field(max_digits=10)] | None = None
     type: Optional[str] = Field(None, max_length=1)
     fk_kioskid: Optional[int] = None
     fk_permission_number: Optional[int] = None
