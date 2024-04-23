@@ -12,7 +12,8 @@ class Service(Base):
     id: Mapped[str] = mapped_column("ID", String(5), primary_key=True)
     ar_name: Mapped[Optional[str]] = mapped_column("AR_NAME", String(40))
     eng_name: Mapped[Optional[str]] = mapped_column("ENG_NAME", String(40))
-    fk_moduleid: Mapped[Optional[int]] = mapped_column("FK_MODULEID", ForeignKey("MODULE.ID"), index=True)
+    fk_moduleid: Mapped[Optional[int]] = mapped_column("FK_MODULEID",
+                                                       ForeignKey("MODULE.ID"), index=True)
     # looks like this column was added by mistake
     # fk_serviceid: Mapped[Optional[str]] = mapped_column("FK_SERVICEID", String(5))
     fk_service_grouno: Mapped[Optional[int]] = mapped_column("FK_SERVICE_GROUNO",
@@ -31,9 +32,9 @@ class ServiceCharge(Base):
     to_value: Mapped[float] = mapped_column("TO", DECIMAL(9, 2), nullable=False)
     active_dt: Mapped[Optional[date]] = mapped_column("ACTIVE_DT",)
     slap: Mapped[float] = mapped_column("SLAP", DECIMAL(9, 2), nullable=False)
-    fk_commission_tcd: Mapped[Optional[int]] = mapped_column("FK_COMMESSION_TCD",
+    fk_commission_tcd: Mapped[Optional[int]] = mapped_column("FK_COMMISSION_TCD",
                                                              ForeignKey("COMMISSION_TYPE.CD"), index=True)
-    fk_commission_vcd: Mapped[Optional[int]] = mapped_column("FK_COMMESSION_VCD",
+    fk_commission_vcd: Mapped[Optional[int]] = mapped_column("FK_COMMISSION_VCD",
                                                              ForeignKey("COMMISSION_VALUE_TYPE.CD"), index=True)
 
 

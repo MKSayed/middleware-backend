@@ -35,7 +35,7 @@ class KioskFamilyBase(BaseModel):
     updated_date: Optional[datetime] = None
     status: Optional[str] = Field(None, max_length=1)
     deleted_flag: Optional[int] = None
-    fk_commession_gcd: Optional[int] = None
+    fk_commission_gcd: Optional[int] = None
     fk_service_charcd: Optional[int] = None
     fk_service_grouno: Optional[int] = None
 

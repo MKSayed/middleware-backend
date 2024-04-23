@@ -59,7 +59,7 @@ async def get_all_roles_short(db: SessionDep):
     return crud_authorized_role.get_all(db)
 
 
-@router.get("/get-role-permissions/{role_number}")
+@router.get("/get-permissions-for-role/{role_number}")
 async def get_role_permissions(db: SessionDep, role_number: int):
     role_data = crud_authorized_role.get_model_by_attribute(db, "number", role_number)
     role_permissions = crud_authorized_role.get_active_permissions(db, role_number)

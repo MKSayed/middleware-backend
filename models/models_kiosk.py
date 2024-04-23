@@ -47,7 +47,7 @@ class KioskFamily(Base):
                                                              server_onupdate=func.current_timestamp())
     status: Mapped[Optional[str]] = mapped_column("STATUS", String(1))
     deleted_flag: Mapped[Optional[int]] = mapped_column("DELETED_FLAG", SmallInteger)
-    fk_commession_gcd: Mapped[Optional[int]] = mapped_column("FK_COMMESSION_GCD",
+    fk_commission_gcd: Mapped[Optional[int]] = mapped_column("FK_COMMISSION_GCD",
                                                              ForeignKey("COMMISSION_GROUP.CD"), index=True)
     fk_service_charcd: Mapped[Optional[int]] = mapped_column("FK_SERVICE_CHARCD",
                                                              ForeignKey("SERVICE_CHARGE.CD"), index=True)

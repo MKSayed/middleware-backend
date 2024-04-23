@@ -1,8 +1,5 @@
-from sqlalchemy import Select, insert
-from sqlalchemy.orm import Session
-
 from crud.base import CRUDBase
-from models.models_connector import Connector, Module
+from models.models_connector import Connector, Module, ModuleParameter
 
 
 class CRUDConnector(CRUDBase):
@@ -17,3 +14,10 @@ class CRUDModule(CRUDBase):
 
 
 crud_module = CRUDModule(Module)
+
+
+class CRUDModuleParameter(CRUDBase):
+    pass
+
+
+crud_module_parameter = CRUDModuleParameter(ModuleParameter)
