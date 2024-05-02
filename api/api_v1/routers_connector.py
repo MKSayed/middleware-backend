@@ -1,14 +1,16 @@
-from typing import List
+import asyncio
+from typing import List, Union, Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
 from fastapi import status
-from sqlalchemy.orm import Session
+from pydantic import parse_obj_as
 
 from api.deps import SessionDep
 from crud.crud_connector import crud_connector, crud_module, crud_module_parameter
 
-from schemas.schemas_connector import ConnectorBase, ModuleBase, ModuleParameter, ModuleCreate, ModuleParameterCreate
+from schemas.schemas_connector import ConnectorBase, ModuleBase, ModuleParameter, ModuleCreate, ModuleParameterCreate, \
+    ConnectorDisplayShort
 
 router = APIRouter()
 
@@ -24,13 +26,19 @@ async def get_connector(pk: int, db: SessionDep):
     return crud_connector.get_model_by_attribute(db, "id", pk)
 
 
-@router.get("/all-connectors", response_model=List[ConnectorBase])
-async def get_all_connectors(db: SessionDep):
-    return crud_connector.get_all(db)
+@router.get("/all-connectors", response_model=list[Union[ConnectorBase, ConnectorDisplayShort]])
+async def get_all_connectors(
+        db: SessionDep,
+        short: bool | None = Query(False, description="Whether to return the short version of the data")):
+    await asyncio.sleep(3)
+    connectors = crud_connector.get_all(db)
+    if short:
+        return parse_obj_as(list[ConnectorDisplayShort], connectors)
+    return connectors
 
 
 @router.put("/update-connector/{pk}")
-async def update_connector(pk, request: ConnectorBase, db: SessionDep):
+async def update_connector(pk: int, request: ConnectorBase, db: SessionDep):
     db_obj = crud_connector.get_model_by_attribute(db, "id", pk)
     return crud_connector.update(db, db_obj=db_obj, obj_in=request)
 
@@ -58,12 +66,12 @@ async def get_all_modules(db: SessionDep):
 
 
 @router.get("/all-modules-for-connector/{pk}", response_model=List[ModuleBase])
-async def get_all_modules_for_connector(pk, db: SessionDep):
+async def get_all_modules_for_connector(pk: int, db: SessionDep):
     return crud_module.get_models_by_attribute(db, "fk_connectorid", pk)
 
 
 @router.put("/update-module/{pk}")
-async def update_module(pk, request: ModuleBase, db: SessionDep):
+async def update_module(pk: int, request: ModuleBase, db: SessionDep):
     db_obj = crud_module.get_model_by_attribute(db, "id", pk)
     return crud_module.update(db, db_obj=db_obj, obj_in=request)
 
@@ -75,11 +83,11 @@ def create_module_parameter(request: ModuleParameter, db: SessionDep):
 
 
 @router.get("/all-params-for-module/{pk}", response_model=List[ModuleParameter])
-async def get_all_params_for_module(pk, db: SessionDep):
+async def get_all_params_for_module(pk: int, db: SessionDep):
     return crud_module_parameter.get_models_by_attribute(db, "fk_moduleid", pk)
 
 
 @router.put("/update-module-parameter/{pk}")
-async def update_module_parameter(pk, request: ModuleParameter, db: SessionDep):
+async def update_module_parameter(pk: int, request: ModuleParameter, db: SessionDep):
     db_obj = crud_module_parameter.get_model_by_attribute(db, "id", pk)
     return crud_module_parameter.update(db, db_obj=db_obj, obj_in=request)

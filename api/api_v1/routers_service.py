@@ -1,12 +1,14 @@
-from fastapi import APIRouter, HTTPException, status
-from typing import List
+from typing import Optional, Union
 
-from api.deps import SessionDep, CurrentUser
+from fastapi import APIRouter, Query
+from pydantic import parse_obj_as
+
+from api.deps import SessionDep
 from crud.crud_service import (crud_service_parameter, crud_currency, crud_service_parameter_type, crud_provider,
                                crud_service_group, crud_service, crud_service_price, crud_service_charge)
-
 from schemas.schemas_service import (ServiceBase, ServiceParameterTypeBase, ServiceGroupBase, ServicePriceBase,
-                                     CurrencyBase, ProviderBase, ServiceChargeBase, ServiceParameterBase)
+                                     CurrencyBase, ProviderBase, ServiceChargeBase, ServiceParameterBase,
+                                     ServiceDisplayShort, CurrencyDisplayShort)
 
 router = APIRouter()
 
@@ -17,9 +19,15 @@ def create_currency(request: CurrencyBase, db: SessionDep):
     return crud_currency.create(db, obj_in=request)
 
 
-@router.get("/all-currencies", response_model=List[CurrencyBase])
-async def get_all_currencies(db: SessionDep):
-    return crud_currency.get_all(db)
+@router.get("/all-currencies", response_model=list[Union[CurrencyBase, CurrencyDisplayShort]])
+async def get_all_currencies(
+        db: SessionDep,
+        short: bool | None = Query(False, description="Whether to return the short version of the data")
+):
+    currencies = crud_currency.get_all(db)
+    if short:
+        return parse_obj_as(list[CurrencyDisplayShort], currencies)
+    return currencies
 
 
 @router.put("/update-currency/{pk}")
@@ -34,7 +42,7 @@ def create_provider(request: ProviderBase, db: SessionDep):
     return crud_provider.create(db, obj_in=request)
 
 
-@router.get("/all-providers", response_model=List[ProviderBase])
+@router.get("/all-providers", response_model=list[ProviderBase])
 async def get_all_providers(db: SessionDep):
     return crud_provider.get_all(db)
 
@@ -51,7 +59,7 @@ def create_service_parameter_type(request: ServiceParameterTypeBase, db: Session
     return crud_service_parameter_type.create(db, obj_in=request)
 
 
-@router.get("/all-service-parameter-types", response_model=List[ServiceParameterTypeBase])
+@router.get("/all-service-parameter-types", response_model=list[ServiceParameterTypeBase])
 async def get_all_service_parameter_types(db: SessionDep):
     return crud_service_parameter_type.get_all(db)
 
@@ -68,7 +76,7 @@ def create_service_group(request: ServiceGroupBase, db: SessionDep):
     return crud_service_group.create(db, obj_in=request)
 
 
-@router.get("/all-service-groups", response_model=List[ServiceGroupBase])
+@router.get("/all-service-groups", response_model=list[ServiceGroupBase])
 async def get_all_service_groups(db: SessionDep):
     return crud_service_group.get_all(db)
 
@@ -85,7 +93,7 @@ def create_service_charge(request: ServiceChargeBase, db: SessionDep):
     return crud_service_charge.create(db, obj_in=request)
 
 
-@router.get("/all-service-charges", response_model=List[ServiceChargeBase])
+@router.get("/all-service-charges", response_model=list[ServiceChargeBase])
 async def get_all_service_charges(db: SessionDep):
     return crud_service_charge.get_all(db)
 
@@ -102,9 +110,14 @@ def create_service(request: ServiceBase, db: SessionDep):
     return crud_service.create(db, obj_in=request)
 
 
-@router.get("/all-services", response_model=List[ServiceBase])
-async def get_all_services(db: SessionDep):
-    return crud_service.get_all(db)
+@router.get("/all-services", response_model=list[Union[ServiceBase, ServiceDisplayShort]])
+async def get_all_services(
+        db: SessionDep,
+        short: bool | None = Query(False, description="Whether to return the short version of the data")):
+    services = crud_service.get_all(db)
+    if short:
+        return parse_obj_as(list[ServiceDisplayShort], services)
+    return services
 
 
 @router.put("/update-service/{pk}")
@@ -119,7 +132,7 @@ def create_service_price(request: ServicePriceBase, db: SessionDep):
     return crud_service_price.create(db, obj_in=request)
 
 
-@router.get("/all-service-prices", response_model=List[ServicePriceBase])
+@router.get("/all-service-prices", response_model=list[ServicePriceBase])
 async def get_all_service_prices(db: SessionDep):
     return crud_service_price.get_all(db)
 
@@ -136,7 +149,7 @@ def create_service_parameter(request: ServiceParameterBase, db: SessionDep):
     return crud_service_parameter.create(db, obj_in=request)
 
 
-@router.get("/all-service-parameters", response_model=List[ServiceParameterBase])
+@router.get("/all-service-parameters", response_model=list[ServiceParameterBase])
 async def get_all_service_parameters(db: SessionDep):
     return crud_service_parameter.get_all(db)
 

@@ -1,9 +1,11 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, Annotated, ClassVar, List
 from datetime import datetime
 
 
 class ModuleBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: Optional[int] = None
     name: Annotated[str, Field(max_length=15)]
     status: Annotated[str, Field(max_length=1)]
@@ -21,6 +23,8 @@ class ModuleCreate(ModuleBase):
 
 
 class ModuleParameter(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: Optional[int] = None
     key: str
     value: str
@@ -40,8 +44,17 @@ class ModuleParameterWithoutFK(ModuleParameter):
 
 
 class ConnectorBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: Optional[int] = None
     name: str = Field(max_length=15)
     status: str = Field(max_length=1)
     created: Optional[datetime] = None
     updated: Optional[datetime] = None
+
+
+class ConnectorDisplayShort(ConnectorBase):
+    id: int
+    status: ClassVar
+    created: ClassVar
+    updated: ClassVar

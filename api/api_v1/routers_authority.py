@@ -1,5 +1,7 @@
-from fastapi import APIRouter, HTTPException, status
-from typing import List
+from fastapi import APIRouter, HTTPException, status, Query
+from typing import Union
+
+from pydantic import parse_obj_as
 
 from api.deps import SessionDep, CurrentUser
 from crud.crud_authority import (crud_application, crud_permission, crud_authorized_role,
@@ -7,7 +9,8 @@ from crud.crud_authority import (crud_application, crud_permission, crud_authori
 
 from schemas.schemas_authority import (ApplicationBase, AuthorizedRoleCreate, AuthorityCreate, AuthorityDisplay,
                                        PermissionDisplay, PermissionUpdate, PermissionCreate, AuthorityUpdate,
-                                       AssignedRoleBase, AuthorityCreateOrUpdate, AssignedRoleCreateOrUpdate)
+                                       AssignedRoleBase, AuthorityCreateOrUpdate, AssignedRoleCreateOrUpdate,
+                                       PermissionDisplayShort)
 
 router = APIRouter()
 
@@ -21,20 +24,20 @@ def create_application(request: ApplicationBase, db: SessionDep):
     return crud_application.create(db, obj_in=request)
 
 
-@router.get("/all-applications", response_model=List[ApplicationBase])
+@router.get("/all-applications", response_model=list[ApplicationBase])
 async def get_all_applications(db: SessionDep):
     return crud_application.get_all(db)
 
 
 # Permission related endpoints
-@router.get("/all-permissions", response_model=List[PermissionDisplay])
-async def get_all_permissions(db: SessionDep):
-    return crud_permission.get_all(db)
-
-
-@router.get("/all-permissions-short", response_model=List[AuthorityDisplay.AuthorityPermissionDisplay])
-async def get_all_permissions_short(db: SessionDep):
-    return crud_permission.get_all(db)
+@router.get("/all-permissions", response_model=list[Union[PermissionDisplay, PermissionDisplayShort]])
+async def get_all_permissions(
+        db: SessionDep,
+        short: bool | None = Query(False, description="Whether to return the short version of the data")):
+    permissions = crud_permission.get_all(db)
+    if short:
+        return parse_obj_as(list[PermissionDisplayShort], permissions)
+    return permissions
 
 
 @router.post("/new-permission")
@@ -54,12 +57,12 @@ def get_all_roles(db: SessionDep):
     return crud_authorized_role.get_all(db)
 
 
-@router.get("/all-roles-short", response_model=List[AuthorityDisplay.AuthorityAuthorizedRoleDisplay])
+@router.get("/all-roles-short", response_model=list[AuthorizedRoleCreate])
 async def get_all_roles_short(db: SessionDep):
     return crud_authorized_role.get_all(db)
 
 
-@router.get("/get-permissions-for-role/{role_number}")
+@router.get("/all-role-data-for-role/{role_number}")
 async def get_role_permissions(db: SessionDep, role_number: int):
     role_data = crud_authorized_role.get_model_by_attribute(db, "number", role_number)
     role_permissions = crud_authorized_role.get_active_permissions(db, role_number)
@@ -82,7 +85,7 @@ def update_role(pk, request: AuthorizedRoleCreate, db: SessionDep):
 
 
 # Authority related endpoints
-@router.get("/all-authorities", response_model=List[AuthorityDisplay])
+@router.get("/all-authorities", response_model=list[AuthorityDisplay])
 def get_all_authorities(db: SessionDep):
     return crud_authority.get_all(db)
 
@@ -154,6 +157,6 @@ def manage_user_roles(request: AssignedRoleCreateOrUpdate, db: SessionDep):
     db.commit()
 
 
-@router.get("/current-assigned-roles/{fk_userid}", response_model=List[AssignedRoleBase])
+@router.get("/current-assigned-roles/{fk_userid}", response_model=list[AssignedRoleBase])
 def get_current_assigned_roles(fk_userid: int, db: SessionDep):
     return crud_assigned_role.get_current_active_roles(db, fk_userid=fk_userid)

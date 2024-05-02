@@ -1,6 +1,6 @@
 import datetime
 from datetime import date
-from typing import Optional, ClassVar, List
+from typing import Optional, ClassVar, List, Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -39,6 +39,13 @@ class PermissionDisplay(PermissionBase):
     application: ApplicationBase
 
 
+class PermissionDisplayShort(PermissionBase):
+    active: ClassVar
+    expiry_date: ClassVar
+    creation_date: ClassVar
+    fk_applicationnum: ClassVar
+
+
 class AuthorityBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -64,18 +71,10 @@ class AuthorityUpdate(AuthorityCreate):
 class AuthorityDisplay(AuthorityBase):
     model_config = ConfigDict(from_attributes=True)
 
-    class AuthorityPermissionDisplay(BaseModel):
-        number: int
-        name: str
-
-    class AuthorityAuthorizedRoleDisplay(BaseModel):
-        number: int
-        name: Optional[str] = None
-
     fk_permission_number: ClassVar
     fk_authorized_rnumber: ClassVar
-    permission: AuthorityPermissionDisplay
-    authorized_role: AuthorityAuthorizedRoleDisplay
+    permission: PermissionDisplayShort
+    authorized_role: "AuthorizedRoleCreate"
 
 
 class AuthorityCreateOrUpdate(BaseModel):
@@ -89,14 +88,14 @@ class AuthorizedRoleBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     number: int
-    name: Optional[str] = Field(None, max_length=50)
+    name: Annotated[str | None, Field(None, max_length=50)]
     creation_date: Optional[date] = None
     expiry_date: Optional[date] = None
 
 
 class AuthorizedRoleCreate(AuthorizedRoleBase):
-    creation_date: ClassVar[date]
-    expiry_date: ClassVar[date]
+    creation_date: ClassVar
+    expiry_date: ClassVar
 
 
 class AssignedRoleBase(BaseModel):
