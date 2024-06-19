@@ -2,6 +2,8 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, Annotated, ClassVar, List
 from datetime import datetime
 
+from schemas.schemas_service import ServiceBase
+
 
 class ModuleBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -51,6 +53,10 @@ class ConnectorBase(BaseModel):
     status: str = Field(max_length=1)
     created: Optional[datetime] = None
     updated: Optional[datetime] = None
+
+
+class ConnectorDisplay(ConnectorBase):
+    service_count: int
 
 
 class ConnectorDisplayShort(ConnectorBase):

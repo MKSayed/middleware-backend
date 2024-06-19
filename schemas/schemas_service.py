@@ -7,25 +7,40 @@ from datetime import date, datetime
 class ServiceBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: str = Field(max_length=5)
-    ar_name: Optional[str] = Field(None, max_length=40)
-    eng_name: Optional[str] = Field(None, max_length=40)
-    fk_moduleser: Optional[int] = None
-    fk_service_grouno: Optional[int] = None
-    fk_providerid: Optional[int] = None
+    id: int | None = None
+    ar_name: str | None = Field(None, max_length=40)
+    eng_name: str | None = Field(None, max_length=40)
+    fk_moduleid: int | None = None
+    # fk_serviceid: int | None = None
+    # fk_service_grouno: int | None = None
+    fk_providerid: int | None = None
+
+
+class ServiceDisplay(ServiceBase):
+    fk_providerid: ClassVar
+    provider: "ProviderBase"
+    service_price: "ServicePriceDisplay"
+    service_groups: list["ServiceGroupBase"] | None = None
 
 
 class ServiceDisplayShort(ServiceBase):
-    fk_moduleser: ClassVar
+    fk_moduleid: ClassVar
     fk_service_grouno: ClassVar
     fk_providerid: ClassVar
+
+
+class ServiceCreate(ServiceBase):
+    price_type: str
+    price_value: float
+    max_value: float
+    fk_currencyid: int
 
 
 class ServiceChargeBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     cd: int
-    descr: str = Field(max_length=50)
+    descr: str = Field(max_length=500)
     value: Decimal = Field(max_digits=11, decimal_places=2)
     from_value: Decimal = Field(max_digits=11, decimal_places=2)
     to_value: Decimal = Field(max_digits=11, decimal_places=2)
@@ -65,13 +80,21 @@ class ServicePriceBase(BaseModel):
 
     id: int
     stdt: date
-    enddt: Optional[date]
-    price_value: Decimal = Field(max_digits=8, decimal_places=2)
-    max_value: Annotated[Decimal, Field(max_digits=8, decimal_places=2)] | None = None
-    type: Optional[str] = Field(None, max_length=8)
-    list_value: Optional[str] = Field(None, max_length=36)
-    fk_serviceid: Optional[str] = Field(None, max_length=5)
-    fk_currencyid: Optional[int] = None
+    enddt: date | None
+    price_value: Decimal = Field(max_digits=6, decimal_places=2)
+    max_value: Annotated[Decimal, Field(max_digits=6, decimal_places=2)] | None = None
+    type: str | None = Field(None, max_length=8)
+    list_value: str | None = Field(None, max_length=36)
+    fk_serviceid: int | None = None
+    fk_currencyid: int | None = None
+
+
+class ServicePriceDisplay(ServicePriceBase):
+    id: ClassVar
+    stdt: ClassVar
+    enddt: ClassVar
+    fk_serviceid: ClassVar
+    fk_currencyid: ClassVar
 
 
 class ProviderBase(BaseModel):

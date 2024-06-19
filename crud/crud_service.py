@@ -2,8 +2,8 @@ from sqlalchemy import Select, insert
 from sqlalchemy.orm import Session
 
 from crud.base import CRUDBase
-from models.models_sevice import (Service, ServiceGroup, ServicePrice, Provider, Currency, ServiceParameter,
-                                  ServiceCharge, ServiceParameterType)
+from models.models_service import (Service, ServiceGroup, ServicePrice, Provider, Currency, ServiceParameter,
+                                   ServiceCharge, ServiceParameterType)
 
 
 class CRUDService(CRUDBase):

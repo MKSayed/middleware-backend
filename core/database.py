@@ -19,7 +19,8 @@ connection_url = URL.create(
     },
 )
 
-# SQLALCHEMY_DATABASE_URL = "mssql+pyodbc://@localhost/testdb?driver=ODBC+Driver+17+for+SQL+Server&TrustServerCertificate=yes&authentication=ActiveDirectoryIntegrated"
+# Copied from the connection url above. Hard coded the URL to use it in alembic as well
+SQLALCHEMY_DATABASE_URL = "mssql+pyodbc://localhost/tempdb2?TrustServerCertificate=yes&authentication=ActiveDirectoryIntegrated&driver=ODBC+Driver+17+for+SQL+Server"
 # SQLALCHEMY_DATABASE_URL = "sqlite:///middleware.db"
 
 engine = create_engine(

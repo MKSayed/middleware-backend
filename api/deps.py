@@ -20,13 +20,17 @@ def get_current_user(db: SessionDep, token: TokenDep) -> User:
     def is_user_active(current_user):
         return current_user.status not in (2, 3)
 
-    unauthorized_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                           detail="Could not validate credentials",
-                                           headers={"WWW-Authenticate": "Bearer"})
+    unauthorized_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
         username: str = payload.get("sub")
-    except (jwt.JWTError):
+    except jwt.JWTError:
         raise unauthorized_exception
     user = crud_user.get_model_by_attribute(db, "username", username)
     if not user:

@@ -102,7 +102,7 @@ class AssignedRoleBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     active: Optional[str] = Field(None, max_length=1)
-    creation_date: date = Field(default_factory=date.today)
+    creation_date: date
     fk_authorized_rnumber: int
     fk_userid: int
 

@@ -1,0 +1,1 @@
+$ Pyinstaller --clean pyinstaller-script.spec      // To use the optimized pyinstaller settings for this application
