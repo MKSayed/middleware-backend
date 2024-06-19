@@ -23,7 +23,7 @@ home-venv
 __pycache__
 .ruff_cache
 updates
-dist
+build/*
 
 middleware.db
 *.db
