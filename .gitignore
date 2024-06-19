@@ -16,9 +16,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-/home-venv/
-/citc-venv/
-/citc-specific/
+
+citc-specific/
+citc-venv
+home-venv
+__pycache__
+.ruff_cache
+updates
+dist
 
 middleware.db
 *.db
@@ -26,5 +31,4 @@ middleware.db
 pyinstaller-README.txt
 pyinstaller-script.py
 pyinstaller-script.spec
-updates
 
