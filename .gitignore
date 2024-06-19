@@ -22,3 +22,9 @@ dist-ssr
 
 middleware.db
 *.db
+
+pyinstaller-README.txt
+pyinstaller-script.py
+pyinstaller-script.spec
+updates
+
