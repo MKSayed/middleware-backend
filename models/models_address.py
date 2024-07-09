@@ -4,7 +4,7 @@ from sqlalchemy import String, SmallInteger, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 
-from core.database import Base
+from models.base import Base
 
 
 class Address(Base):

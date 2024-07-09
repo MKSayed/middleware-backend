@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from sqlalchemy import Select, delete, insert
+from sqlalchemy import delete, insert, select
 
 from core.database import Base
 
@@ -29,21 +29,27 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     def get_model_by_attribute(self, db: Session, attribute: str, attribute_value: Any) -> Optional[ModelType]:
         if hasattr(self.model, attribute):
             model_attribute = getattr(self.model, attribute)
-            stmt = Select(self.model).where(model_attribute == attribute_value).limit(1)
+            stmt = select(self.model).where(model_attribute == attribute_value).limit(1)
             return db.scalars(stmt).first()
         else:
             raise AttributeError
 
-    def get_models_by_attribute(self, db: Session, attribute: str, attribute_value: Any) -> Optional[ModelType]:
-        if hasattr(self.model, attribute):
-            model_attribute = getattr(self.model, attribute)
-            stmt = Select(self.model).where(model_attribute == attribute_value)
+    def get_models_by_attribute(self, db: Session, attribute_name: str, attribute_value: Any) -> Optional[ModelType]:
+        if hasattr(self.model, attribute_name):
+            model_attribute = getattr(self.model, attribute_name)
+
+            # convert attribute_value to a list of 1 element to be used in the SQL in clause
+            if not isinstance(attribute_value, list):
+                attribute_value = [attribute_value]
+
+            # SQL in clause is used to handle list of values passed
+            stmt = select(self.model).where(model_attribute.in_(attribute_value))
             return db.scalars(stmt).all()
         else:
             raise AttributeError
 
     def get_all(self, db: Session):
-        stmt = Select(self.model)
+        stmt = select(self.model)
         return db.scalars(stmt).all()
 
     def create(self, db: Session, *, obj_in: CreateSchemaType) -> ModelType:
@@ -75,7 +81,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     def remove_model_by_attribute(self, db: Session, *, attribute: str, attribute_value: any) -> ModelType:
         if hasattr(self.model, attribute):
             model_attribute = getattr(self.model, attribute)
-            stmt = Select(self.model).where(model_attribute == attribute_value)
+            stmt = select(self.model).where(model_attribute == attribute_value)
             obj = db.scalars(stmt).first()
             db.delete(obj)
             db.commit()

@@ -1,5 +1,5 @@
 from typing import Optional
-from core.database import Base
+from models.base import Base
 from sqlalchemy import Numeric
 from sqlalchemy import (
     String,

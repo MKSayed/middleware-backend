@@ -1,12 +1,11 @@
-from typing import Generator
 
-from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.engine import URL
-from sqlalchemy.orm import sessionmaker, declarative_base, Session
+from models.base import Base
 from sqlalchemy import event
 
 connection_url = URL.create(
-    "mssql+pyodbc",
+    "mssql+aioodbc",
     # username="scott",
     # password="tiger",
     host="localhost",
@@ -20,10 +19,10 @@ connection_url = URL.create(
 )
 
 # Copied from the connection url above. Hard coded the URL to use it in alembic as well
-SQLALCHEMY_DATABASE_URL = "mssql+pyodbc://localhost/tempdb2?TrustServerCertificate=yes&authentication=ActiveDirectoryIntegrated&driver=ODBC+Driver+17+for+SQL+Server"
+SQLALCHEMY_DATABASE_URL = "mssql+aioodbc://localhost/tempdb2?TrustServerCertificate=yes&authentication=ActiveDirectoryIntegrated&driver=ODBC+Driver+17+for+SQL+Server"
 # SQLALCHEMY_DATABASE_URL = "sqlite:///middleware.db"
 
-engine = create_engine(
+async_engine = create_async_engine(
     connection_url, echo=True
 )
 
@@ -35,11 +34,18 @@ engine = create_engine(
 #     cursor.close()
 
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-Base = declarative_base()
+AsyncSessionLocal = async_sessionmaker(autocommit=False, autoflush=False, bind=async_engine)
 
 
-def get_db() -> Generator:
-    with Session(engine) as session:
-        yield session
+async def create_all():
+    """
+    creates all database tables
+    todo to be replaced with async alembic later
+    """
+    async with async_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+
+async def get_db():
+    async with AsyncSessionLocal() as db:
+        yield db

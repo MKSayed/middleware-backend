@@ -3,11 +3,12 @@ from typing import Any
 
 from sqlalchemy import String, SmallInteger, DECIMAL, ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.ext.asyncio import AsyncAttrs
 
-from core.database import Base
+from models.base import Base
 
 
-class Service(Base):
+class Service(AsyncAttrs, Base):
     __tablename__ = "SERVICE"
 
     id: Mapped[Any] = mapped_column("ID", SmallInteger, primary_key=True, index=True)
@@ -22,12 +23,12 @@ class Service(Base):
         "FK_PROVIDERID", ForeignKey("PROVIDER.ID"), index=True, nullable=True
     )
     # Relationships
-    provider: Mapped["Provider"] = relationship(lazy="selectin")
-    service_price: Mapped["ServicePrice"] = relationship(lazy="selectin")
+    provider: Mapped["Provider"] = relationship(lazy="select")
+    service_price: Mapped["ServicePrice"] = relationship(lazy="select")
     service_groups: Mapped[list["ServiceGroup"]] = relationship(
         secondary="SERVICE_SERVICEGROUP",
         back_populates="services",
-        lazy="selectin",
+        lazy="select",
     )
 
 
@@ -41,7 +42,7 @@ class ServiceGroup(Base):
     services: Mapped[list["Service"]] = relationship(
         secondary="SERVICE_SERVICEGROUP",
         back_populates="service_groups",
-        lazy="selectin",
+        lazy="select",
     )
 
 

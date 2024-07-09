@@ -12,7 +12,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
-from core.database import Base
+from models.base import Base
 
 
 class Application(Base):
@@ -60,8 +60,8 @@ class Authority(Base):
         "FK_AUTHORIZED_RNUMBER", ForeignKey("AUTHORIZED_ROLE.NUMBER"), index=True
     )
 
-    permission: Mapped["Permission"] = relationship(lazy="joined")
-    authorized_role: Mapped["AuthorizedRole"] = relationship(lazy="joined")
+    permission: Mapped["Permission"] = relationship(lazy="selectin")
+    authorized_role: Mapped["AuthorizedRole"] = relationship(lazy="selectin")
 
     __table_args__ = (
         PrimaryKeyConstraint("FK_PERMISSION_NUMBER", "FK_AUTHORIZED_RNUMBER"),

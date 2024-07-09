@@ -10,7 +10,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
-from core.database import Base
+from models.base import Base
 
 
 class AssignedEquipment(Base):

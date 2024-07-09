@@ -27,7 +27,10 @@ crud_connector = CRUDConnector(Connector)
 
 
 class CRUDModule(CRUDBase):
-    pass
+    @staticmethod
+    def get_all_module_ids_for_connector(db, connector_id):
+        stmt = select(Module.id).where(Module.fk_connectorid == connector_id)
+        return db.scalars(stmt).all()
 
 
 crud_module = CRUDModule(Module)

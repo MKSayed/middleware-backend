@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 
-from crud.crud_user import crud_user
-from api.deps import SessionDep
+from models.models_user import User
+from api.deps import AsyncSessionDep
 from core.security import verify_password, create_access_token
 from core.config import settings
 
@@ -22,12 +22,12 @@ class Token(BaseModel):
 
 @router.post("", response_model=Token)
 async def login_access_token(
-    session: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+    db: AsyncSessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
 ) -> Token:
     """
     OAuth2 compatible token login, get an access token for future requests
     """
-    user = crud_user.get_model_by_attribute(session, "username", form_data.username)
+    user = await User.find(db, username=form_data.username)
     if not user or not verify_password(form_data.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

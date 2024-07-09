@@ -1,31 +1,31 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from typing import Annotated
+from fastapi import APIRouter, HTTPException, status
 
 from sqlalchemy.exc import IntegrityError
 
-from api.deps import SessionDep, CurrentUser
+from api.deps import AsyncSessionDep, CurrentUser
 from schemas.schemas_user import (
-    UserBase,
     UserCreate,
     UserUpdate,
     UserDisplay,
-    UserTypeBase,
 )
-from crud.crud_user import crud_user, crud_user_type
+from models.models_user import User
+from core.security import get_password_hash
 
 router = APIRouter()
 
 
 @router.get("/users", response_model=list[UserDisplay])
-async def get_all_users(db: SessionDep, current_user: CurrentUser):
-    return crud_user.get_all(db)
+async def get_all_users(db: AsyncSessionDep, current_user: CurrentUser):
+    return await User.get_all(db)
 
 
 @router.post("/users", status_code=status.HTTP_201_CREATED)
-async def create_user(request: UserCreate, db: SessionDep):
+async def create_user(request: UserCreate, db: AsyncSessionDep):
 
+    user_dict = request.model_dump()
+    user_dict["password"] = get_password_hash(user_dict["password"])
     try:
-        return crud_user.create(db, obj_in=request)
+        return await User(**user_dict).save(db)
     except IntegrityError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="User already exists"
@@ -33,10 +33,22 @@ async def create_user(request: UserCreate, db: SessionDep):
 
 
 @router.put("/users/{pk}", response_model=UserDisplay)
-async def update_user(pk: int, db: SessionDep, user_update: UserUpdate):
+async def update_user(pk: int, db: AsyncSessionDep, user_update: UserUpdate):
+    update_dict = user_update.model_dump(exclude_unset=True)
+
+    # Hash the new password before saving in database
+    if password := update_dict.get("password"):
+        update_dict["password"] = get_password_hash(password)
+    else:
+        # Make sure no empty string is being sent to database
+        try:
+            del update_dict["password"]
+        except KeyError:
+            pass
+
     try:
-        user = crud_user.get_model_by_attribute(db, "id", pk)
-        return crud_user.update(db, db_obj=user, obj_in=user_update)
+        updated_user = await User.find(db, id=pk)
+        return await updated_user.update(db, **update_dict)
     except IntegrityError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Failed to update user"

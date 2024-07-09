@@ -1,112 +1,140 @@
 import asyncio
-from typing import List, Union, Optional
 
 from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
 from fastapi import status
-from pydantic import TypeAdapter
+from pydantic import TypeAdapter, BaseModel
 
-from api.deps import SessionDep
+from api.deps import AsyncSessionDep
+from crud.crud_service import crud_service
 from crud.crud_connector import crud_connector, crud_module, crud_module_parameter
+from models.models_service import Service
 
 from schemas.schemas_connector import (
     ConnectorBase,
     ModuleBase,
-    ModuleParameter,
+    ModuleParameterBase,
     ModuleCreate,
     ModuleParameterCreate,
     ConnectorDisplayShort, ConnectorDisplay,
 )
+from schemas.schemas_service import ServiceDisplay
+from models.models_connector import Connector, Module, ModuleParameter
 
 router = APIRouter()
 
 
 # Connector related endpoints
 @router.post("/connectors")
-def create_connector(request: ConnectorBase, db: SessionDep):
-    return crud_connector.create(db, obj_in=request)
+async def create_connector(request: ConnectorBase, db: AsyncSessionDep):
+    return await Connector(
+        **request.model_dump(exclude_unset=True, exclude_none=True)
+    ).save(db)
 
 
 @router.get("/connectors/{pk}", response_model=ConnectorBase)
-async def get_connector(pk: int, db: SessionDep):
-    return crud_connector.get_model_by_attribute(db, "id", pk)
+async def get_connector(pk: int, db: AsyncSessionDep):
+    return await Connector.find(db, id=pk)
 
 
 @router.get(
-    "/connectors", response_model=list[Union[ConnectorDisplay, ConnectorDisplayShort]]
+    "/connectors", response_model=list[ConnectorDisplay | ConnectorDisplayShort]
 )
 async def get_all_connectors(
-    db: SessionDep,
+    db: AsyncSessionDep,
     short: bool | None = Query(
         False, description="Whether to return the short version of the data"
     ),
 ):
     await asyncio.sleep(3)
     if short:
-        connectors = crud_connector.get_all(db)
+        connectors = await Connector.get_all(db)
         short_connectors = TypeAdapter(list[ConnectorDisplayShort])
         return short_connectors.validate_python(connectors)
     else:
-        return crud_connector.get_all_with_service_count(db)
-
+        return await Connector.get_all_with_service_count(db)
 
 
 @router.put("/connectors/{pk}")
-async def update_connector(pk: int, request: ConnectorBase, db: SessionDep):
-    db_obj = crud_connector.get_model_by_attribute(db, "id", pk)
-    return crud_connector.update(db, db_obj=db_obj, obj_in=request)
+async def update_connector(pk: int, request: ConnectorBase, db: AsyncSessionDep):
+    connector = await Connector.find(db, id=pk)
+    return await connector.update(db, **request.model_dump(exclude_unset=True, exclude_none=True))
 
 
-@router.get("/connectors/{pk}/modules", response_model=List[ModuleBase])
-async def get_all_modules_for_connector(pk: int, db: SessionDep):
-    return crud_module.get_models_by_attribute(db, "fk_connectorid", pk)
+@router.get("/connectors/{pk}/modules", response_model=list[ModuleBase])
+async def get_all_modules_for_connector(pk: int, db: AsyncSessionDep):
+    return await Module.find_all(db, fk_connectorid=pk)
+
+
+class ConnectorServices(BaseModel):
+    services: list[ServiceDisplay]
+    connector_name: str
+
+
+@router.get("/connectors/{pk}/services", response_model=ConnectorServices)
+async def get_all_services_for_connector(pk: int, db: AsyncSessionDep):
+    module_ids = await Module.get_all_module_ids_for_connector(db, connector_id=pk)
+    services = await Service.find_all(db, with_eager_loading=True, fk_moduleid=module_ids)
+    connector = await Connector.find(db, id=pk)
+    connector_name = connector.name
+
+    # Force loading lazily loaded attributes
+    # Replaced with find_all(with_loading_lazy_attributes=True) when all relationships need to be loaded
+    # for service in services:
+    #     await db.refresh(service, ['provider', 'service_price', 'service_groups'])
+
+    return ConnectorServices(services=services, connector_name=connector_name)
 
 
 # Module related endpoints
 @router.post("/modules")
-def create_module(request: ModuleCreate, db: SessionDep):
+async def create_module(request: ModuleCreate, db: AsyncSessionDep):
     module_in = ModuleBase.model_validate(request.model_dump())
-    created_module = crud_module.create(db, obj_in=module_in)
-    module_id = created_module.id
+    new_module = await Module(**module_in.model_dump(exclude_unset=True, exclude_none=True)).save(db)
+    module_id = new_module.id
     for module_param in request.module_params:
         module_parameter_in = ModuleParameterCreate(
             **module_param.model_dump(), fk_moduleid=module_id
         )
-        module_parameter = crud_module_parameter.create(db, obj_in=module_parameter_in)
+        module_parameter = await ModuleParameter(**module_parameter_in.model_dump(exclude_none=True, exclude_unset=True)).save(db, auto_commit=False)
+
+    await db.commit()
+
     return JSONResponse(
         {"message": "Module was created successfully"},
         status_code=status.HTTP_201_CREATED,
     )
 
 
-@router.get("/modules", response_model=List[ModuleBase])
-async def get_all_modules(db: SessionDep):
-    return crud_module.get_all(db)
+@router.get("/modules", response_model=list[ModuleBase])
+async def get_all_modules(db: AsyncSessionDep):
+    return await Module.get_all(db)
 
 
 @router.get("/modules/{pk}", response_model=ModuleBase)
-async def get_module(pk: int, db: SessionDep):
-    return crud_module.get_model_by_attribute(db, "id", pk)
+async def get_module(pk: int, db: AsyncSessionDep):
+    return await Module.find(db, id=pk)
 
 
 @router.put("/modules/{pk}")
-async def update_module(pk: int, request: ModuleBase, db: SessionDep):
-    db_obj = crud_module.get_model_by_attribute(db, "id", pk)
-    return crud_module.update(db, db_obj=db_obj, obj_in=request)
+async def update_module(pk: int, request: ModuleBase, db: AsyncSessionDep):
+    module = await Module.find(db, id=pk)
+    return await module.update(db, **request.model_dump(exclude_unset=True, exclude_none=True))
 
 
-@router.get("/modules/{pk}/parameters", response_model=List[ModuleParameter])
-async def get_all_params_for_module(pk: int, db: SessionDep):
-    return crud_module_parameter.get_models_by_attribute(db, "fk_moduleid", pk)
+@router.get("/modules/{pk}/parameters", response_model=list[ModuleParameterBase])
+async def get_all_params_for_module(pk: int, db: AsyncSessionDep):
+    return await ModuleParameter.find_all(db, fk_moduleid=pk)
 
 
 # Module Parameter related endpoints
 @router.post("/module-parameters")
-def create_module_parameter(request: ModuleParameter, db: SessionDep):
-    return crud_module_parameter.create(db, obj_in=request)
+async def create_module_parameter(request: ModuleParameterBase, db: AsyncSessionDep):
+
+    return await ModuleParameter(**request.model_dump(exclude_unset=True, exclude_none=True)).save(db)
 
 
 @router.put("/module-parameters/{pk}")
-async def update_module_parameter(pk: int, request: ModuleParameter, db: SessionDep):
-    db_obj = crud_module_parameter.get_model_by_attribute(db, "id", pk)
-    return crud_module_parameter.update(db, db_obj=db_obj, obj_in=request)
+async def update_module_parameter(pk: int, request: ModuleParameterBase, db: AsyncSessionDep):
+    module_parameter = await ModuleParameter.find(db, id=pk)
+    return await module_parameter.update(db, **request.model_dump(exclude_unset=True, exclude_none=True))

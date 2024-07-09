@@ -21,10 +21,10 @@ class ModuleCreate(ModuleBase):
     id: ClassVar
     created: ClassVar
     updated: ClassVar
-    module_params: List["ModuleParameterWithoutFK"]
+    module_params: List["ModuleParameterBaseWithoutFK"]
 
 
-class ModuleParameter(BaseModel):
+class ModuleParameterBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: Optional[int] = None
@@ -36,11 +36,11 @@ class ModuleParameter(BaseModel):
     fk_moduleid: int
 
 
-class ModuleParameterCreate(ModuleParameter):
+class ModuleParameterCreate(ModuleParameterBase):
     id: ClassVar
 
 
-class ModuleParameterWithoutFK(ModuleParameter):
+class ModuleParameterBaseWithoutFK(ModuleParameterBase):
     id: ClassVar
     fk_moduleid: ClassVar
 

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from crud.base import CRUDBase
 from models.models_service import (Service, ServiceGroup, ServicePrice, Provider, Currency, ServiceParameter,
-                                   ServiceCharge, ServiceParameterType)
+                                   ServiceCharge, ServiceParameterType, ServiceServiceGroupAssociation)
 
 
 class CRUDService(CRUDBase):
@@ -60,3 +60,10 @@ class CRUDCurrency(CRUDBase):
 
 
 crud_currency = CRUDCurrency(Currency)
+
+
+class CRUDServiceServiceGroupAssociation(CRUDBase):
+    pass
+
+
+crud_service_service_group_association = CRUDServiceServiceGroupAssociation(ServiceServiceGroupAssociation)
