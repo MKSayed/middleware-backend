@@ -2,47 +2,61 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, Annotated, ClassVar, List
 from datetime import datetime
 
-from schemas.schemas_service import ServiceBase
+
+from schemas.schemas_service import ServiceBase, ParamTypeBase, ParamLocBase
 
 
 class ModuleBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: Optional[int] = None
-    name: Annotated[str, Field(max_length=15)]
+    id: int | None = None
+    name: Annotated[str, Field(max_length=15, min_length=2)]
     status: Annotated[str, Field(max_length=1)]
-    description: Annotated[str, Field(max_length=100)]
-    created: Optional[datetime] = None
-    updated: Optional[datetime] = None
-    fk_connectorid: int
+    description: Annotated[str, Field(max_length=500)]
+    base_url: str
+    timeout: int | None
+    created: datetime | None = None
+    updated: datetime | None = None
+    fk_connector_id: int
+    is_xml: bool
 
 
 class ModuleCreate(ModuleBase):
     id: ClassVar
     created: ClassVar
     updated: ClassVar
-    module_params: List["ModuleParameterBaseWithoutFK"]
+    module_params: List["ModuleParameterCreateWithoutFK"]
 
 
 class ModuleParameterBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: Optional[int] = None
-    key: str
-    value: str
-    description: Annotated[str, Field(max_length=100)]
-    created: Optional[datetime] = None
-    updated: Optional[datetime] = None
-    fk_moduleid: int
+    id: int | None = None
+    key: Annotated[str, Field(max_length=200)]
+    value: str | None = None
+    description: Annotated[str, Field(max_length=500)]
+    parent_id: int | None = None
+    fk_param_type_cd: int
+    fk_param_loc_cd: int
+    # created: datetime | None = None
+    # updated: datetime | None = None
+    fk_module_id: int
+    type: ParamTypeBase
+    location: ParamLocBase
 
 
 class ModuleParameterCreate(ModuleParameterBase):
+    type: ClassVar
+    location: ClassVar
     id: ClassVar
 
 
-class ModuleParameterBaseWithoutFK(ModuleParameterBase):
-    id: ClassVar
-    fk_moduleid: ClassVar
+class ModuleParameterCreateWithoutFK(ModuleParameterCreate):
+    fk_module_id: ClassVar
+
+
+class ModuleParameterDisplayWithChildren(ModuleParameterBase):
+    children: List[ModuleParameterBase] = []
 
 
 class ConnectorBase(BaseModel):
@@ -51,8 +65,8 @@ class ConnectorBase(BaseModel):
     id: Optional[int] = None
     name: str = Field(max_length=15)
     status: str = Field(max_length=1)
-    created: Optional[datetime] = None
-    updated: Optional[datetime] = None
+    created: datetime | None = None
+    updated: datetime | None = None
 
 
 class ConnectorDisplay(ConnectorBase):

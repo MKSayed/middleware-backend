@@ -2,6 +2,15 @@ from pydantic import BaseModel, Field, ConfigDict
 from decimal import Decimal
 from typing import Optional, Annotated, ClassVar
 from datetime import date, datetime
+from enum import Enum
+
+
+class HTTPMethodEnum(str, Enum):
+    GET = "GET"
+    POST = "POST"
+    PUT = "PUT"
+    DELETE = "DELETE"
+    PATCH = "PATCH"
 
 
 class ServiceBase(BaseModel):
@@ -10,30 +19,73 @@ class ServiceBase(BaseModel):
     id: int | None = None
     ar_name: str | None = Field(None, max_length=40)
     eng_name: str | None = Field(None, max_length=40)
-    fk_moduleid: int | None = None
-    # fk_serviceid: int | None = None
-    # fk_service_grouno: int | None = None
-    fk_providerid: int | None = None
+    fk_module_id: int | None = None
+    http_method: HTTPMethodEnum
+    endpoint_path: str
+    fk_provider_id: int | None = None
 
 
 class ServiceDisplay(ServiceBase):
-    fk_providerid: ClassVar
+    fk_provider_id: ClassVar
     provider: "ProviderBase"
     service_price: "ServicePriceDisplay"
     service_groups: list["ServiceGroupBase"] | None = None
 
 
 class ServiceDisplayShort(ServiceBase):
-    fk_moduleid: ClassVar
-    fk_service_grouno: ClassVar
-    fk_providerid: ClassVar
+    fk_module_id: ClassVar
+    fk_provider_id: ClassVar
 
 
 class ServiceCreate(ServiceBase):
     price_type: str
     price_value: float
     max_value: float
-    fk_currencyid: int
+    fk_currency_id: int
+
+
+class ServiceGroupBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    no: int
+    name: str = Field(max_length=45)
+
+
+class ServiceParameterBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    key: str = Field(max_length=200)
+    value: str | None = None
+    parent_id: int | None = None
+    fk_service_id: int
+    fk_param_type_cd: int
+    fk_param_loc_cd: int
+    is_optional: bool
+    is_client: bool
+    # fk_service_para_type_cd: int
+
+# class ServiceParameterTypeBase(BaseModel):
+#     model_config = ConfigDict(from_attributes=True)
+#
+#     cd: int
+#     descr: Optional[str] = Field(None, max_length=35)
+#     constancy: Optional[str] = Field(None, max_length=1)
+#     direction: Optional[str] = Field(None, max_length=1)
+
+
+class ParamTypeBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    cd: int
+    descr: Annotated[str, Field(max_length=35)]
+
+
+class ParamLocBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    cd: int
+    descr: Annotated[str, Field(max_length=35)]
 
 
 class ServiceChargeBase(BaseModel):
@@ -49,30 +101,6 @@ class ServiceChargeBase(BaseModel):
     fk_commission_tcd: Optional[int] = None
     fk_commission_vcd: Optional[int] = None
 
-
-class ServiceGroupBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    no: int
-    name: str = Field(max_length=45)
-
-
-class ServiceParameterBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    ser: int
-    service_value: str = Field(max_length=200)
-    fk_serviceid: str = Field(max_length=5)
-    fk_service_paracd: Optional[int] = None
-
-
-class ServiceParameterTypeBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    cd: int
-    descr: Optional[str] = Field(None, max_length=35)
-    constancy: Optional[str] = Field(None, max_length=1)
-    direction: Optional[str] = Field(None, max_length=1)
 
 
 class ServicePriceBase(BaseModel):

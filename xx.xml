@@ -1,0 +1,25 @@
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                  xmlns:csoh="http://www.soa.cso1.gov.eg/CSOModel/V1/CSOHeader"
+                  xmlns:def="http://www.cso1.gov.eg/Services/CSOPrintingDocService/V1/Definitions">
+    <soapenv:Header>
+        <csoh:CSOHeader>
+            <OrganizationCode>01-CSO</OrganizationCode>
+            <UserId>KIOSK1</UserId>
+            <deviceID>9999</deviceID>
+            <RequestTimeStamp>2019-01-01 10:10:10.000000</RequestTimeStamp>
+            <TransactionNumber></TransactionNumber>
+        </csoh:CSOHeader>
+    </soapenv:Header>
+    <soapenv:Body>
+        <def:ValidatePersonAppFormRequestElement>
+            <requestType>72</requestType>
+            <idnum>29108280104021</idnum>
+            <motherName></motherName>
+            <fcn></fcn>
+            <mobileNumber>01222222222</mobileNumber>
+            <docType>81</docType>
+            <docSubType></docSubType>
+            <systemId>3</systemId>
+        </def:ValidatePersonAppFormRequestElement>
+    </soapenv:Body>
+</soapenv:Envelope>

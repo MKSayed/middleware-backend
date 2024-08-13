@@ -9,3 +9,5 @@ pydantic-settings
 pydantic
 pyodbc
 aioodbc
+xmltodict
+httpx

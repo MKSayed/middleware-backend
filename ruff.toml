@@ -44,7 +44,8 @@ ignore = []
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
-unfixable = []
+# Disable fix for unused imports (`F401`).
+unfixable = ["F401"]
 
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"

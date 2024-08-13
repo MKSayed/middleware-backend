@@ -1,6 +1,8 @@
 
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.engine import URL
+from sqlalchemy.orm import sessionmaker
+
 from models.base import Base
 from sqlalchemy import event
 
@@ -10,7 +12,7 @@ connection_url = URL.create(
     # password="tiger",
     host="localhost",
     # port=1434,
-    database="tempdb2",
+    database="devdb",
     query={
         "driver": "ODBC Driver 17 for SQL Server",
         "TrustServerCertificate": "yes",
@@ -19,11 +21,11 @@ connection_url = URL.create(
 )
 
 # Copied from the connection url above. Hard coded the URL to use it in alembic as well
-SQLALCHEMY_DATABASE_URL = "mssql+aioodbc://localhost/tempdb2?TrustServerCertificate=yes&authentication=ActiveDirectoryIntegrated&driver=ODBC+Driver+17+for+SQL+Server"
+SQLALCHEMY_DATABASE_URL = "mssql+aioodbc://localhost/devdb?TrustServerCertificate=yes&authentication=ActiveDirectoryIntegrated&driver=ODBC+Driver+17+for+SQL+Server"
 # SQLALCHEMY_DATABASE_URL = "sqlite:///middleware.db"
 
 async_engine = create_async_engine(
-    connection_url, echo=True
+    connection_url, echo=False
 )
 
 # This is needed to Ensure the application of crud constraints
@@ -35,6 +37,7 @@ async_engine = create_async_engine(
 
 
 AsyncSessionLocal = async_sessionmaker(autocommit=False, autoflush=False, bind=async_engine)
+SyncSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=async_engine.sync_engine)
 
 
 async def create_all():
@@ -48,4 +51,9 @@ async def create_all():
 
 async def get_db():
     async with AsyncSessionLocal() as db:
+        yield db
+
+
+def get_sync_db():
+    with SyncSessionLocal() as db:
         yield db

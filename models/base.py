@@ -30,8 +30,14 @@ class Base(DeclarativeBase):
         return self
 
     @classmethod
-    async def get_all(cls, db: AsyncSession):
-        stmt = select(cls)
+    async def get_all(cls, db: AsyncSession, with_eager_loading: bool = False):
+
+        options = []
+        if with_eager_loading:
+            for rel in class_mapper(cls).relationships:
+                options.append(selectinload(getattr(cls, rel.key)))
+
+        stmt = select(cls).options(*options)
         result = await db.execute(stmt)
         return result.scalars().all()
 

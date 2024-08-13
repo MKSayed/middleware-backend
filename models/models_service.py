@@ -1,11 +1,36 @@
 from datetime import date, datetime
 from typing import Any
 
-from sqlalchemy import String, SmallInteger, DECIMAL, ForeignKey, func
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import String, SmallInteger, DECIMAL, ForeignKey, func, select, Identity
 from sqlalchemy.ext.asyncio import AsyncAttrs
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from core.database import get_sync_db
 from models.base import Base
+from models.models_connector import ModuleParameter
+
+
+class KioskService(Base):
+    __tablename__ = "KIOSK_SERVICE"
+
+    cd: Mapped[int] = mapped_column("CD", SmallInteger, primary_key=True, index=True)
+    ar_name: Mapped[str | None] = mapped_column("AR_NAME", String(40))
+    eng_name: Mapped[str] = mapped_column("ENG_NAME", String(40))
+
+
+class KioskServiceFlow(Base):
+    __tablename__ = "KIOSK_SERVICE_FLOW"
+
+    fk_kiosk_service_cd: Mapped[Any] = mapped_column(
+        "FK_KIOSK_SERVICE_CD",
+        ForeignKey("KIOSK_SERVICE.CD"),
+        primary_key=True,
+        index=True,
+    )
+    fk_service_id: Mapped[Any] = mapped_column(
+        "FK_SERVICE_ID", ForeignKey("SERVICE.ID"), index=True
+    )
+    order: Mapped[int] = mapped_column("ORDER", SmallInteger, primary_key=True)
 
 
 class Service(AsyncAttrs, Base):
@@ -14,15 +39,18 @@ class Service(AsyncAttrs, Base):
     id: Mapped[Any] = mapped_column("ID", SmallInteger, primary_key=True, index=True)
     ar_name: Mapped[str | None] = mapped_column("AR_NAME", String(40))
     eng_name: Mapped[str | None] = mapped_column("ENG_NAME", String(40))
-    fk_moduleid: Mapped[Any | None] = mapped_column(
-        "FK_MODULEID", ForeignKey("MODULE.ID"), index=True, nullable=True
+    fk_module_id: Mapped[Any | None] = mapped_column(
+        "FK_MODULE_ID", ForeignKey("MODULE.ID"), index=True, nullable=True
     )
+    http_method: Mapped[str] = mapped_column("HTTP_METHOD", String(10))
+    endpoint_path: Mapped[str] = mapped_column("ENDPOINT_PATH")
     # A service can depend on another server.
     # fk_serviceid: Mapped[int | None] = mapped_column("FK_SERVICEID", ForeignKey("SERVICE.ID"), index=True)
-    fk_providerid: Mapped[Any | None] = mapped_column(
-        "FK_PROVIDERID", ForeignKey("PROVIDER.ID"), index=True, nullable=True
+    fk_provider_id: Mapped[Any | None] = mapped_column(
+        "FK_PROVIDER_ID", ForeignKey("PROVIDER.ID"), index=True, nullable=True
     )
     # Relationships
+    service_parameters: Mapped[list["ServiceParameter"]] = relationship(lazy="select")
     provider: Mapped["Provider"] = relationship(lazy="select")
     service_price: Mapped["ServicePrice"] = relationship(lazy="select")
     service_groups: Mapped[list["ServiceGroup"]] = relationship(
@@ -61,6 +89,82 @@ class ServiceServiceGroupAssociation(Base):
     )
 
 
+class ServiceParameter(AsyncAttrs, Base):
+    __tablename__ = "SERVICE_PARAMETER"
+
+    id: Mapped[int] = mapped_column(
+        "SER", Identity(start=3000, increment=1), primary_key=True
+    )
+    key: Mapped[str] = mapped_column("KEY", String(200), nullable=False)
+    value: Mapped[str | None] = mapped_column("VALUE")
+    parent_id: Mapped[int | None] = mapped_column(
+        "PARENT_ID", comment="This could refer to a service_parameter_id or module_parameter_id")
+    fk_service_id: Mapped[int] = mapped_column(
+        "FK_SERVICE_ID", ForeignKey("SERVICE.ID"), nullable=False, index=True
+    )
+    # fk_service_para_type_cd: Mapped[int | None] = mapped_column(
+    #     "FK_SERVICE_PARA_TYPE_CD", ForeignKey("SERVICE_PARAMETER_TYPE.CD"), index=True
+    # )
+    fk_param_type_cd: Mapped[Any] = mapped_column("FK_PARAM_TYPE_CD", ForeignKey("PARAM_TYPE.CD"), index=True)
+    fk_param_loc_cd: Mapped[Any] = mapped_column("FK_PARAM_LOC_CD", ForeignKey("PARAM_LOC.CD"), index=True)
+    is_optional: Mapped[bool] = mapped_column("IS_OPTIONAL")
+    is_client: Mapped[bool] = mapped_column("IS_CLIENT")
+    nest_level: Mapped[int] = mapped_column(
+        "NEST_LEVEL",
+        default=lambda context: ServiceParameter.on_insert(context),
+        onupdate=lambda context: ServiceParameter.on_update(context),
+    )
+    # parent_param: Mapped["ServiceParameter"] = relationship(
+    #     "ServiceParameter", back_populates="children", remote_side=[ser], lazy="select"
+    # )
+    # children: Mapped[list["ServiceParameter"]] = relationship(
+    #     "ServiceParameter", back_populates="parent_param"
+    # )
+    #  type: Mapped["ServiceParameterType"] = relationship(lazy="selectin")
+
+    @staticmethod
+    def on_insert(context):
+        parent_id = context.get_current_parameters().get("PARENT_ID", None)
+        if not parent_id:
+            return 0
+
+        for db in get_sync_db():
+            stmt = select(ServiceParameter).filter_by(id=parent_id)
+            parent = db.execute(stmt).scalars().first()
+            # If the parent is not found in the database, then its parent is a module parameter
+            if parent is None:
+                stmt = select(ModuleParameter).filter_by(id=parent_id)
+                parent = db.execute(stmt).scalars().first()
+
+            return parent.nest_level + 1
+
+    @staticmethod
+    def on_update(context):
+        # TODO handle the case when a parameter nest level is changed it also change
+        # all it's children's nest level
+        parent_id = context.get_current_parameters().get("PARENT_ID", None)
+        for db in get_sync_db():
+            # Do not update the nest_level if the parent hasn't changed
+            if not parent_id:
+                stmt = select(ServiceParameter).filter_by(
+                    id=context.get_current_parameters().get(
+                        "SERVICE_PARAMETER_ID", None
+                    )
+                )
+                service_parameter = db.execute(stmt).scalars().first()
+                # return the same nest level if the parent hasn't changed
+                return service_parameter.nest_level
+
+
+            stmt = select(ServiceParameter).filter_by(id=parent_id)
+            parent = db.execute(stmt).scalars().first()
+            # If the parent is not found in the database, then its parent is a module parameter
+            if parent is None:
+                stmt = select(ModuleParameter).filter_by(id=parent_id)
+                parent = db.execute(stmt).scalars().first()
+            return parent.nest_level + 1
+
+
 class ServiceCharge(Base):
     __tablename__ = "SERVICE_CHARGE"
 
@@ -80,29 +184,34 @@ class ServiceCharge(Base):
         "FK_COMMISSION_VCD", ForeignKey("COMMISSION_VALUE_TYPE.CD"), index=True
     )
 
+# class ServiceParameterType(Base):
+#     __tablename__ = "SERVICE_PARAMETER_TYPE"
+#
+#     cd: Mapped[int] = mapped_column(
+#         "CD",
+#         SmallInteger,
+#         primary_key=True,
+#         comment="1 body input 2 body output 3 input header",
+#     )
+#     descr: Mapped[str | None] = mapped_column("DESCR", String(35))
+#     # constancy: Mapped[str | None] = mapped_column("CONSTANCY", String(1), comment="1 Variable 2 Constant")
+#     direction: Mapped[str | None] = mapped_column(
+#         "DIRECTION", String(1), comment="1 input 2 output"
+#     )
 
-class ServiceParameter(Base):
-    __tablename__ = "SERVICE_PARAMETER"
 
-    ser: Mapped[int] = mapped_column("SER", SmallInteger, primary_key=True)
-    service_value: Mapped[str] = mapped_column(
-        "SERVICE_VALUE", String(200), nullable=False
-    )
-    fk_serviceid: Mapped[int] = mapped_column(
-        "FK_SERVICEID", ForeignKey("SERVICE.ID"), nullable=False, index=True
-    )
-    fk_service_para_typecd: Mapped[int | None] = mapped_column(
-        "FK_SERVICE_PARA_TYPE_CD", ForeignKey("SERVICE_PARAMETER_TYPE.CD"), index=True
-    )
-
-
-class ServiceParameterType(Base):
-    __tablename__ = "SERVICE_PARAMETER_TYPE"
+class ParamType(Base):
+    __tablename__ = "PARAM_TYPE"
 
     cd: Mapped[int] = mapped_column("CD", SmallInteger, primary_key=True)
-    descr: Mapped[str | None] = mapped_column("DESCR", String(35))
-    constancy: Mapped[str | None] = mapped_column("CONSTANCY", String(1))
-    direction: Mapped[str | None] = mapped_column("DIRECTION", String(1))
+    descr: Mapped[str] = mapped_column("DESCR", String(35), nullable=False)
+
+
+class ParamLoc(Base):
+    __tablename__ = "PARAM_LOC"
+
+    cd: Mapped[int] = mapped_column("CD", SmallInteger, primary_key=True)
+    descr: Mapped[str] = mapped_column("DESCR", String(35), nullable=False)
 
 
 class ServicePrice(Base):
