@@ -23,7 +23,7 @@ from schemas.schemas_service import (
     ServiceDisplayShort,
     CurrencyDisplayShort,
     ServiceDisplay,
-    ServiceCreate,
+    ServiceCreate, ServiceParameterCreate,
 )
 from models.models_service import (
     Currency,
@@ -169,11 +169,11 @@ async def update_service_charge(pk, request: ServiceChargeBase, db: AsyncSession
 async def create_service(request: ServiceCreate, db: AsyncSessionDep):
     service = await Service(
         **request.model_dump(
-            include={"ar_name", "eng_name", "fk_module_id", "fk_provider_id"}
+            include={"ar_name", "eng_name", "fk_module_id", "fk_provider_id", "http_method", "endpoint_path"}
         )
     ).save(db, auto_commit=True)
     service_price_request_dict = request.model_dump(
-        exclude={"ar_name", "eng_name", "fk_module_id", "fk_provider_id"}
+        exclude={"ar_name", "eng_name", "fk_module_id", "fk_provider_id", "http_method", "endpoint_path"}
     )
     service_price_request_dict["fk_service_id"] = service.id
 
@@ -181,16 +181,14 @@ async def create_service(request: ServiceCreate, db: AsyncSessionDep):
     service_price_request_dict["type"] = service_price_request_dict.pop("price_type")
 
     try:
-        service_price = await ServicePrice(**service_price_request_dict).save(db)
+        service_price = await ServicePrice(**service_price_request_dict).save(db, auto_commit=True)
     except Exception as e:
         print(Fore.RED + str(e.with_traceback(None)) + Style.RESET_ALL)
         await db.rollback()
         await db.delete(service)
         await db.commit()
-        return JSONResponse(
-            {"message": "An error occurred while creating service"},
-            status_code=status.HTTP_417_EXPECTATION_FAILED,
-        )
+        raise HTTPException(detail="An error occurred while creating service", status_code=status.HTTP_417_EXPECTATION_FAILED)
+
     return JSONResponse(
         {"message": "Service was created successfully"},
         status_code=status.HTTP_201_CREATED,
@@ -209,6 +207,21 @@ async def get_all_services(
         short_services_adapter = TypeAdapter(list[ServiceDisplayShort])
         return short_services_adapter.validate_python(services)
     return services
+
+
+@router.get("/services/{pk}", response_model=ServiceDisplay | ServiceDisplayShort)
+async def get_all_services(
+        pk:int,
+    db: AsyncSessionDep,
+    short: bool | None = Query(
+        False, description="Whether to return the short version of the data"
+    ),
+):
+    service = await Service.find(db, id=pk)
+    if short:
+        short_services_adapter = TypeAdapter(ServiceDisplayShort)
+        return short_services_adapter.validate_python(service)
+    return service
 
 
 @router.put("/services/{pk}")
@@ -241,6 +254,35 @@ async def get_all_params_for_service(pk: int, db: AsyncSessionDep, nested_form: 
     return service_parameters
 
 
+@router.get("/services/{pk}/combined-parameters")
+async def get_all_module_params_for_service(pk: int, db: AsyncSessionDep, nested_form: bool = Query()):
+    service = await Service.find(db, id=pk)
+    module = await Module.find(db, id=service.fk_module_id)
+
+    service_parameters = await ServiceParameter.find_all(db, fk_service_id=pk)
+    module_parameters = await ModuleParameter.find_all(db, fk_module_id=service.fk_module_id)
+
+    combined_parameters = list(service_parameters) + list(module_parameters)
+
+    if nested_form:
+        root_parameters = []
+        parameter_collection = {}
+        for param in sorted(combined_parameters, key=lambda x: int(x.nest_level)):
+            if param.nest_level == 0:
+                root_parameters.append(param)
+                parameter_collection[param.id] = param
+            else:
+                if hasattr(parameter_collection[param.parent_id], "children"):
+                    parameter_collection[param.parent_id].children.append(param)
+                    parameter_collection[param.id] = param
+                else:
+                    parameter_collection[param.parent_id].children = [param]
+                    parameter_collection[param.id] = param
+
+        return root_parameters
+    return {"module_parameters": module_parameters, "service_parameters": service_parameters, "is_xml": module.is_xml}
+
+
 # Service price related endpoints
 @router.post("/service-prices")
 async def create_service_price(request: ServicePriceBase, db: AsyncSessionDep):
@@ -264,7 +306,7 @@ async def update_service_price(pk, request: ServicePriceBase, db: AsyncSessionDe
 
 # Service parameter related endpoints
 @router.post("/service-parameters")
-async def create_service_parameter(request: ServiceParameterBase, db: AsyncSessionDep):
+async def create_service_parameter(request: ServiceParameterCreate, db: AsyncSessionDep):
     return await ServiceParameter(
         **request.model_dump(exclude_unset=True, exclude_none=True)
     ).save(db)
@@ -286,10 +328,10 @@ async def update_service_parameter(
 # Service & Service Group association endpoints
 @router.post("/service-service-group-associations")
 async def create_service_group_association(
-    fk_serviceid: int, fk_service_grouno: int, db: AsyncSessionDep
+    fk_service_id: int, fk_service_group_no: int, db: AsyncSessionDep
 ):
     return await ServiceServiceGroupAssociation(
-        fk_service_grouno=fk_service_grouno, fk_serviceid=fk_serviceid
+        fk_service_group_no=fk_service_group_no, fk_service_id=fk_service_id
     ).save(db)
 
 
@@ -324,7 +366,7 @@ async def send_third_party_request(service_id: int, db: AsyncSessionDep, data: d
     service = await Service.find(db, id=service_id)
     # service_parameters = await service.awaitable_attrs.service_parameters
     # input_service_parameters = [param for param in service_parameters if int(param.fk_service_para_typecd) in (1, 3)]
-    input_service_parameters = list(await ServiceParameter.find_all(db, fk_serviceid=service_id, fk_service_para_type_cd=[1, 3]))
+    input_service_parameters = list(await ServiceParameter.find_all(db, fk_service_id=service_id, fk_service_para_type_cd=[1, 3]))
     module = await Module.find(db, with_eager_loading=True, id=1)
 
     # Copy the input_service_parameters and module objects to avoid modifying the original objects in the database

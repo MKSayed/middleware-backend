@@ -45,7 +45,7 @@ class Service(AsyncAttrs, Base):
     http_method: Mapped[str] = mapped_column("HTTP_METHOD", String(10))
     endpoint_path: Mapped[str] = mapped_column("ENDPOINT_PATH")
     # A service can depend on another server.
-    # fk_serviceid: Mapped[int | None] = mapped_column("FK_SERVICEID", ForeignKey("SERVICE.ID"), index=True)
+    # fk_service_id: Mapped[int | None] = mapped_column("FK_SERVICE_ID", ForeignKey("SERVICE.ID"), index=True)
     fk_provider_id: Mapped[Any | None] = mapped_column(
         "FK_PROVIDER_ID", ForeignKey("PROVIDER.ID"), index=True, nullable=True
     )
@@ -78,11 +78,11 @@ class ServiceServiceGroupAssociation(Base):
     __tablename__ = "SERVICE_SERVICEGROUP"
 
     # Compose a composite primary key by passing True as primary_key value for both columns
-    fk_serviceid: Mapped[Any] = mapped_column(
-        "FK_SERVICEID", ForeignKey("SERVICE.ID"), primary_key=True, index=True
+    fk_service_id: Mapped[Any] = mapped_column(
+        "FK_SERVICE_ID", ForeignKey("SERVICE.ID"), primary_key=True, index=True
     )
-    fk_service_grouno: Mapped[Any] = mapped_column(
-        "FK_SERVICE_GROUNO",
+    fk_service_group_no: Mapped[Any] = mapped_column(
+        "FK_SERVICE_GROUP_NO",
         ForeignKey("SERVICE_GROUP.NO"),
         index=True,
         primary_key=True,
@@ -114,13 +114,16 @@ class ServiceParameter(AsyncAttrs, Base):
         default=lambda context: ServiceParameter.on_insert(context),
         onupdate=lambda context: ServiceParameter.on_update(context),
     )
+    value_reference_id: Mapped[int | None] = mapped_column("VALUE_REFERENCE_ID",
+                                                        comment="This could refer to a service_parameter_id or module_parameter_id")
+
     # parent_param: Mapped["ServiceParameter"] = relationship(
     #     "ServiceParameter", back_populates="children", remote_side=[ser], lazy="select"
     # )
     # children: Mapped[list["ServiceParameter"]] = relationship(
     #     "ServiceParameter", back_populates="parent_param"
     # )
-    #  type: Mapped["ServiceParameterType"] = relationship(lazy="selectin")
+    type:  Mapped["ParamType"] = relationship(lazy="selectin")
 
     @staticmethod
     def on_insert(context):
@@ -155,7 +158,6 @@ class ServiceParameter(AsyncAttrs, Base):
                 # return the same nest level if the parent hasn't changed
                 return service_parameter.nest_level
 
-
             stmt = select(ServiceParameter).filter_by(id=parent_id)
             parent = db.execute(stmt).scalars().first()
             # If the parent is not found in the database, then its parent is a module parameter
@@ -183,6 +185,7 @@ class ServiceCharge(Base):
     fk_commission_vcd: Mapped[int | None] = mapped_column(
         "FK_COMMISSION_VCD", ForeignKey("COMMISSION_VALUE_TYPE.CD"), index=True
     )
+
 
 # class ServiceParameterType(Base):
 #     __tablename__ = "SERVICE_PARAMETER_TYPE"
@@ -229,11 +232,11 @@ class ServicePrice(Base):
     # Type = String "fixed" or "range"
     type: Mapped[str | None] = mapped_column("TYPE", String(8))
     list_value: Mapped[str | None] = mapped_column("LIST_VALUE", String(36))
-    fk_serviceid: Mapped[Any] = mapped_column(
-        "FK_SERVICEID", ForeignKey("SERVICE.ID"), index=True
+    fk_service_id: Mapped[Any] = mapped_column(
+        "FK_SERVICE_ID", ForeignKey("SERVICE.ID"), index=True
     )
-    fk_currencyid: Mapped[Any] = mapped_column(
-        "FK_CURRENCYID",
+    fk_currency_id: Mapped[Any] = mapped_column(
+        "FK_CURRENCY_ID",
         ForeignKey("CURRENCY.ID"),
         index=True,
         # Todo to be changed later when the application start supporting multiple currencies

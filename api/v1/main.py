@@ -10,6 +10,7 @@ from . import (
     # routers_equipment,
     # routers_kiosk,
     # routers_update,
+    routers_misc
 )
 
 router = APIRouter()
@@ -26,3 +27,4 @@ router.include_router(routers_service.router, prefix="/service", tags=["service"
 # router.include_router(routers_equipment.router, prefix="/equipment", tags=["equipment"])
 # router.include_router(routers_kiosk.router, prefix="/kiosk", tags=["kiosk"])
 # router.include_router(routers_update.router, prefix="/update", tags=["update"])
+router.include_router(routers_misc.router, prefix="/misc", tags=["misc"])

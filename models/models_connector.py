@@ -65,7 +65,7 @@ class ModuleParameter(AsyncAttrs, Base):
 
     # Relationships
     parent_param: Mapped["ModuleParameter"] = relationship("ModuleParameter", remote_side=[id])
-    type = relationship("ParamType")
+    type = relationship("ParamType", lazy="selectin")
     location = relationship("ParamLoc")
 
     @staticmethod

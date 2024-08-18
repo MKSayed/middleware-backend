@@ -22,11 +22,10 @@ class ServiceBase(BaseModel):
     fk_module_id: int | None = None
     http_method: HTTPMethodEnum
     endpoint_path: str
-    fk_provider_id: int | None = None
+    fk_provider_id: int
 
 
 class ServiceDisplay(ServiceBase):
-    fk_provider_id: ClassVar
     provider: "ProviderBase"
     service_price: "ServicePriceDisplay"
     service_groups: list["ServiceGroupBase"] | None = None
@@ -63,7 +62,12 @@ class ServiceParameterBase(BaseModel):
     fk_param_loc_cd: int
     is_optional: bool
     is_client: bool
+    value_reference_id: int | None = None
     # fk_service_para_type_cd: int
+
+
+class ServiceParameterCreate(ServiceParameterBase):
+    id: ClassVar
 
 # class ServiceParameterTypeBase(BaseModel):
 #     model_config = ConfigDict(from_attributes=True)
@@ -113,16 +117,16 @@ class ServicePriceBase(BaseModel):
     max_value: Annotated[Decimal, Field(max_digits=6, decimal_places=2)] | None = None
     type: str | None = Field(None, max_length=8)
     list_value: str | None = Field(None, max_length=36)
-    fk_serviceid: int | None = None
-    fk_currencyid: int | None = None
+    fk_service_id: int | None = None
+    fk_currency_id: int | None = None
 
 
 class ServicePriceDisplay(ServicePriceBase):
     id: ClassVar
     stdt: ClassVar
     enddt: ClassVar
-    fk_serviceid: ClassVar
-    fk_currencyid: ClassVar
+    fk_service_id: ClassVar
+    fk_currency_id: ClassVar
 
 
 class ProviderBase(BaseModel):
