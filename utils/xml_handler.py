@@ -3,18 +3,25 @@ from typing import Any, Dict, Tuple
 from fastapi import status, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.models_connector import ModuleParameter
-from models.models_service import ServiceParameter
+from models.models_connector import ModuleParameter, Module
+from models.models_service import ServiceParameter, Service
 
 
-def create_xml_base_structure(nsmap: dict) -> Tuple[Dict, Dict, Dict]:
+# def create_xml_base_structure(nsmap: dict) -> Tuple[Dict, Dict, Dict]:
+#     """Create the basic XML structure with envelope, header, and body."""
+#     envelope = {"soapenv:Envelope": nsmap}
+#     header = {"soapenv:Header": {}}
+#     body = {"soapenv:Body": {}}
+#     envelope["soapenv:Envelope"].update(header)
+#     envelope["soapenv:Envelope"].update(body)
+#     return envelope, header["soapenv:Header"], body["soapenv:Body"]
+
+
+def create_xml_base_structure(nsmap: dict) -> dict:
     """Create the basic XML structure with envelope, header, and body."""
     envelope = {"soapenv:Envelope": nsmap}
-    header = {"soapenv:Header": {}}
-    body = {"soapenv:Body": {}}
-    envelope["soapenv:Envelope"].update(header)
-    envelope["soapenv:Envelope"].update(body)
-    return envelope, header["soapenv:Header"], body["soapenv:Body"]
+
+    return envelope
 
 
 def create_xml_elements(parent: dict, key: str, value: Any, id: Any = None):
@@ -115,6 +122,15 @@ async def add_module_parameters(header: dict, module_params: list[ModuleParamete
             await add_nested_parameter(header, current_module_param, db)
 
 
+async def add_parameters(envelope: dict, parameters: list[ServiceParameter | ModuleParameter], db: AsyncSession):
+    """Add module parameters to the XML structure."""
+    for current_module_param in sorted(module_params, key=lambda x: int(x.nest_level)):
+        if current_module_param.nest_level == 0:
+            create_xml_elements(header, current_module_param.key, current_module_param.value, id=current_module_param.id)
+        else:
+            await add_nested_parameter(header, current_module_param, db)
+
+
 async def add_service_parameters(header: dict, body: dict, input_service_parameters: list[ServiceParameter], db: AsyncSession):
     """Add service parameters to the XML structure."""
     for current_service_param in sorted(input_service_parameters, key=lambda x: int(x.nest_level)):
@@ -158,26 +174,12 @@ async def add_nested_parameter(parent_tag: dict, current_param: ServiceParameter
             )
 
 
-def get_namespaces_url_timeout(module_parameters: list[ModuleParameter]):
+async def get_namespaces(db, service: Service, module: Module):
+    namespace_parameters = list((await ModuleParameter.find_all(db, fk_module_id=module.id, fk_param_loc_cd=4))) + list((await ServiceParameter.find_all(db, fk_service_id=service.id, fk_param_loc_cd=4)))
     nsmap = {}
-    url = None
-    timeout = None
-    elements_to_remove = []
-    for module_param in module_parameters:
-        if module_param.key.startswith("xmlns:"):
-            nsmap[f"@{module_param.key}"] = module_param.value
-            elements_to_remove.append(module_param)
-        elif module_param.key.startswith("connection."):
-            if module_param.key.endswith(".url"):
-                url = module_param.value
-            if module_param.key.endswith(".timeout"):
-                timeout = module_param.value
-            elements_to_remove.append(module_param)
-
-    for item in elements_to_remove:
-        module_parameters.remove(item)
-
-    return nsmap, url, timeout
+    for ns_param in namespace_parameters:
+        nsmap[f"@{ns_param.key}"] = ns_param.value
+    return nsmap
 
 
 def remove_dataIdentifiers(d):

@@ -62,7 +62,10 @@ class ModuleParameter(AsyncAttrs, Base):
         "FK_MODULE_ID", ForeignKey("MODULE.ID"), index=True
     )
     nest_level: Mapped[int] = mapped_column("NEST_LEVEL", default=lambda context: ModuleParameter.on_insert(context), onupdate=lambda context: ModuleParameter.on_update(context))
-
+    is_optional: Mapped[bool] = mapped_column("IS_OPTIONAL")
+    is_client: Mapped[bool] = mapped_column("IS_CLIENT")
+    value_reference_id: Mapped[int | None] = mapped_column("VALUE_REFERENCE_ID",
+                                                        comment="This could refer to a service_parameter_id or module_parameter_id")
     # Relationships
     parent_param: Mapped["ModuleParameter"] = relationship("ModuleParameter", remote_side=[id])
     type = relationship("ParamType", lazy="selectin")

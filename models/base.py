@@ -73,13 +73,21 @@ class Base(DeclarativeBase):
     ) -> Sequence[Self]:
         query_criteria = []
         for key, value in kwargs.items():
-            if isinstance(value, list):
+            # Handle passing 'not_' string before the column name to add not clause the query
+            if key.startswith('not_'):
+                if isinstance(value, list):
+                    query_criteria.append(column(key[4:]).notin_(value))
+                else:
+                    query_criteria.append(column(key[4:]).__ne__(value))
+            # Handle creating equality query criteria
+            elif isinstance(value, list):
                 query_criteria.append(column(key).in_(value))
             else:
                 query_criteria.append(column(key).__eq__(value))
 
         options = []
         if with_eager_loading:
+            # add all relationships to the preload options if with_eager_loading flag is true
             for rel in class_mapper(cls).relationships:
                 options.append(selectinload(getattr(cls, rel.key)))
 

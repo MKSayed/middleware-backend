@@ -43,9 +43,12 @@ class ModuleParameterBase(BaseModel):
     fk_module_id: int
     type: ParamTypeBase
     location: ParamLocBase
+    is_optional: bool
+    is_client: bool
 
 
 class ModuleParameterCreate(ModuleParameterBase):
+    # Type and location in relationships not the actual foreign keys
     type: ClassVar
     location: ClassVar
     id: ClassVar

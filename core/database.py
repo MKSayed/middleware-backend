@@ -17,6 +17,7 @@ connection_url = URL.create(
         "driver": "ODBC Driver 17 for SQL Server",
         "TrustServerCertificate": "yes",
         "authentication": "ActiveDirectoryIntegrated",
+        "Mars_Connection": "yes",
     },
 )
 

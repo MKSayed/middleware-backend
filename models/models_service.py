@@ -93,7 +93,7 @@ class ServiceParameter(AsyncAttrs, Base):
     __tablename__ = "SERVICE_PARAMETER"
 
     id: Mapped[int] = mapped_column(
-        "SER", Identity(start=3000, increment=1), primary_key=True
+        "ID", Identity(start=3000, increment=1), primary_key=True
     )
     key: Mapped[str] = mapped_column("KEY", String(200), nullable=False)
     value: Mapped[str | None] = mapped_column("VALUE")
