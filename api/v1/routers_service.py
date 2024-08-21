@@ -37,7 +37,8 @@ from models.models_service import (
     KioskService,
     KioskServiceFlow,
 )
-from utils.new_util import build_parameter_tree, attach_ids_and_values, replace_tuples
+from utils.service_module_params_utils import build_parameter_tree, attach_ids_and_values, replace_tuples_with_values, \
+    get_root_parameters_nodes
 from utils.xml_handler import create_xml_base_structure, get_namespaces
 
 router = APIRouter()
@@ -259,8 +260,16 @@ async def get_all_module_params_for_service(pk: int, db: AsyncSessionDep, nested
     service = await Service.find(db, id=pk)
     module = await Module.find(db, id=service.fk_module_id)
 
-    service_parameters = await ServiceParameter.find_all(db, fk_service_id=pk)
-    module_parameters = await ModuleParameter.find_all(db, fk_module_id=service.fk_module_id)
+    service_params_search_criteria = {"fk_service_id": service.id}
+    module_params_search_criteria = {"fk_module_id": module.id}
+
+    if not nested_form:
+        # Remove xml name space parameters
+        service_params_search_criteria.update({"not_fk_param_loc_cd": 4})
+        module_params_search_criteria.update({"not_fk_param_loc_cd": 4})
+
+    service_parameters = await ServiceParameter.find_all(db, **service_params_search_criteria)
+    module_parameters = await ModuleParameter.find_all(db, **module_params_search_criteria)
 
     combined_parameters = list(service_parameters) + list(module_parameters)
 
@@ -325,6 +334,12 @@ async def update_service_parameter(
     return await service_parameter.update(db, **request.model_dump(exclude_unset=True))
 
 
+@router.delete('/service-parameters/{pk}')
+async def delete_service_parameter(pk, db: AsyncSessionDep):
+    service_parameter = await ServiceParameter.find(db, id=pk)
+    await service_parameter.delete_self(db, auto_commit=True)
+    return {"detail": 'success'}
+
 # Service & Service Group association endpoints
 @router.post("/service-service-group-associations")
 async def create_service_group_association(
@@ -360,80 +375,35 @@ async def sync_service_data(service_group_no: int, db: AsyncSessionDep):
         "services": services,
     }
 
-
-# @router.post("/send_third_party_request")
-# async def send_third_party_request(service_id: int, db: AsyncSessionDep, data: dict):
-#     service = await Service.find(db, id=service_id)
-#     # service_parameters = await service.awaitable_attrs.service_parameters
-#     # input_service_parameters = [param for param in service_parameters if int(param.fk_service_para_typecd) in (1, 3)]
-#     input_service_parameters = list(await ServiceParameter.find_all(db, fk_service_id=service_id, fk_service_para_type_cd=[1, 3]))
-#     module = await Module.find(db, with_eager_loading=True, id=1)
-#
-#     # Copy the input_service_parameters and module objects to avoid modifying the original objects in the database
-#     copied_input_service_parameters = deepcopy(input_service_parameters)
-#     copied_module = deepcopy(module)
-#
-#     # Populate parameter values
-#     for parameter in copied_input_service_parameters:
-#         parameter.value = find_parameter_value(data, parameter)
-#
-#     if not copied_module.is_xml:
-#         # TODO: Add JSON logic
-#         pass
-#     else:
-#         nsmap, url, timeout = get_namespaces_url_timeout(copied_module.module_params)
-#
-#         envelope, header, body = create_xml_base_structure(nsmap)
-#
-#         await add_module_parameters(header, copied_module.module_params, db)
-#         await add_service_parameters(header, body, copied_input_service_parameters, db)
-#
-#         remove_dataIdentifiers(envelope)
-#
-#         # Send the request to the third party service provider
-#         async with httpx.AsyncClient() as client:
-#             # Had to use conditional to avoid setting the timeout as None since it is not the same
-#             # as the default value in httpx
-#             if timeout:
-#                 response = await client.post(url, content=xmltodict.unparse(envelope), timeout=int(timeout))
-#             else:
-#                 print(xmltodict.unparse(envelope, full_document=False))
-#                 response = await client.post(url, content=xmltodict.unparse(envelope, full_document=False))
-#
-#         if not response.is_success:
-#             raise HTTPException(status_code=response.status_code, detail=xmltodict.parse(response.text, xml_attribs=False))
-#         else:
-#             envelope = xmltodict.parse(response.text, xml_attribs=False)["soapenv:Envelope"]
-#             if "soapenv:Header" in envelope:
-#                 header = envelope["soapenv:Header"]
-#             body = envelope["soapenv:Body"]
-#             header.update(body)
-#             return header
-
-        # return {"done": True, "xml": response}
-
 global_session_data_collection = {}
 
 
-@router.post("/send_third_party_request")
+@router.post("/send-third-party-request")
 async def send_third_party_request(service_id: int, db: AsyncSessionDep, data: dict):
     # Fetch the requested service
     service = await Service.find(db, id=service_id)
     module = await Module.find(db, id=service.fk_module_id)
+    # # Fetch input service parameters
+    # # not_fk_param_loc_cd=4 prevents adding the xml namespaces as request body parameters
+    # input_service_parameters = list(
+    #     await ServiceParameter.find_all(db, fk_service_id=service_id, fk_param_type_cd=1, not_fk_param_loc_cd=4))
+    #
+    # # not_fk_param_loc_cd=4 prevents adding the xml namespaces as request body parameters
+    # input_module_parameters = list(await ModuleParameter.find_all(db, fk_module_id=module.id, fk_param_type_cd=1, not_fk_param_loc_cd=4))
+    #
+    # # Sort the input service and module parameters ascending by next_level
+    # input_service_parameters = sorted(input_service_parameters, key=lambda x: int(x.nest_level))
+    # input_module_parameters = sorted(input_module_parameters, key=lambda x: int(x.nest_level))
+    # # Combine input module parameters with input service parameters
+    # # input module parameters should be first to be created as ParameterNodes firstly while building the parameter tree
+    # input_parameters = input_module_parameters + input_service_parameters
+    #
+    # # Build parameter tree
+    # root_nodes = build_parameter_tree(input_parameters)
+
     # Fetch input service parameters
     # not_fk_param_loc_cd=4 prevents adding the xml namespaces as request body parameters
-    input_service_parameters = list(
-        await ServiceParameter.find_all(db, fk_service_id=service_id, fk_param_type_cd=1, not_fk_param_loc_cd=4))
-
-    # not_fk_param_loc_cd=4 prevents adding the xml namespaces as request body parameters
-    input_module_parameters = list(await ModuleParameter.find_all(db, fk_module_id=module.id, fk_param_type_cd=1, not_fk_param_loc_cd=4))
-
-    input_service_parameters = sorted(input_service_parameters, key=lambda x: int(x.nest_level))
-    input_module_parameters = sorted(input_module_parameters, key=lambda x: int(x.nest_level))
-    input_parameters = input_service_parameters + input_module_parameters
-
-    # Build parameter tree
-    root_nodes = build_parameter_tree(input_parameters)
+    root_nodes = await get_root_parameters_nodes(db, service, module, fk_param_type_cd=1, not_fk_param_loc_cd=4)
 
     # get or create kiosk_session_data
     kiosk_id = 999  # Change the value of kiosk_id to the actual kiosk id in production
@@ -453,10 +423,8 @@ async def send_third_party_request(service_id: int, db: AsyncSessionDep, data: d
     # requires the same input data without the need to pass it again from the client
     kiosk_session_data.append(result)
 
-    print(global_session_data_collection[kiosk_id])
-
     # Convert tuples of (node_id, value) into value only after saving it in the session collection and before sending it to the external service
-    result = replace_tuples(result)
+    input_dict = replace_tuples_with_values(result)
 
     if not module.is_xml:
         # TODO: Add JSON logic
@@ -468,7 +436,7 @@ async def send_third_party_request(service_id: int, db: AsyncSessionDep, data: d
         nsmap = await get_namespaces(db, service, module)
 
         envelope = create_xml_base_structure(nsmap)
-        envelope["soapenv:Envelope"].update(result)
+        envelope["soapenv:Envelope"].update(input_dict)
 
         print(xmltodict.unparse(envelope, full_document=False, pretty=True))
 
@@ -485,37 +453,27 @@ async def send_third_party_request(service_id: int, db: AsyncSessionDep, data: d
                 elif service.http_method == HTTPMethodEnum.PUT:
                     response = await client.put(url, content=xmltodict.unparse(envelope, full_document=False), timeout=int(timeout))
 
-                return response.text
+        if not response.is_success:
+            raise HTTPException(status_code=response.status_code, detail=xmltodict.parse(response.text, xml_attribs=False))
+        response_dict = xmltodict.parse(response.text, xml_attribs=False)["soapenv:Envelope"]
 
-    #
-    #     if not response.is_success:
-    #         raise HTTPException(status_code=response.status_code, detail=xmltodict.parse(response.text, xml_attribs=False))
-    #     else:
-    #         envelope = xmltodict.parse(response.text, xml_attribs=False)["soapenv:Envelope"]
-    #         if "soapenv:Header" in envelope:
-    #             header = envelope["soapenv:Header"]
-    #         body = envelope["soapenv:Body"]
-    #         header.update(body)
-    #         return header
-    #
-    # # Fetch output service parameters
-    # output_service_parameters = list(
-    #     await ServiceParameter.find_all(db, fk_serviceid=service_id, fk_param_type_cd=2))
-    # root_nodes = build_parameter_tree(output_service_parameters)
-    #
-    # # Extract the corresponding the values from the response data dictionary using the node tree path and
-    # # attach ids to every value (except those nested inside lists) to be able to identify data in future requests
-    # result = {}
-    # for root_node in root_nodes.values():
-    #     await attach_ids_and_values(db, response_data, root_node, result)
-    #
-    # # Add the response's data to the global session data collection list for later use in future service calls that
-    # # requires the same output data without the need to pass it again from the client
-    # global_session_data_collection[kiosk_id].append(result)
-    #
-    # print(result)
-    #
-    # # Todo remove the next line after development phase
-    # global_session_data_collection.clear()
-    #
-    # return result
+        root_nodes = await get_root_parameters_nodes(db, service, module, fk_param_type_cd=2)
+
+        result = {}
+        for root_node in root_nodes.values():
+            await attach_ids_and_values(db, response_dict, root_node, result, kiosk_session_data)
+
+        kiosk_session_data.append(result)
+
+        response_dict = replace_tuples_with_values(result)
+
+        # Uncomment this line to Check the response on swagger if needed to make the creation of the output parameters easier
+        return xmltodict.parse(response.text, xml_attribs=False)
+
+
+@router.put('/clear-kiosk-session')
+def clear_kiosk_session_data(kiosk_id: int):
+    del global_session_data_collection[kiosk_id]
+
+
+

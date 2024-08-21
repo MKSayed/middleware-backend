@@ -1,4 +1,7 @@
+from typing import Dict
+
 from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.models_connector import ModuleParameter
 from models.models_service import ServiceParameter
@@ -39,6 +42,10 @@ async def attach_ids_and_values(db, data: dict, node: ParameterNode, result: dic
                 await attach_ids_and_values(db, value, child, new_value, global_session_data_collection)
             result[node.key] = new_value
         else:
+            # Prevent passing empty string to eval function
+            if node.value == '':
+                node.value = None
+
             # check if the stored value is a dict. which means client is going to send the dict key and we use it's value
             if isinstance(eval(str(node.value)), dict):
                 if value not in node.value:
@@ -98,16 +105,56 @@ def find_all(d, key):
     return found
 
 
-def replace_tuples(data):
+def find(d: dict, key: str) -> dict | None:
+    """Recursively searches for the first dictionary within the nested dictionary 'd' that contains the specified 'key'."""
+    if key in d:
+        return d
+    for k, v in d.items():
+        if isinstance(v, dict):
+            result = find(v, key)
+            if result:
+                return result
+        elif isinstance(v, list):
+            for item in v:
+                if isinstance(item, dict):
+                    result = find(item, key)
+                    if result:
+                        return result
+    return None
+
+
+def replace_tuples_with_values(data):
     if isinstance(data, dict):
         # Recursively apply to all dictionary values
-        return {key: replace_tuples(value) for key, value in data.items()}
+        return {key: replace_tuples_with_values(value) for key, value in data.items()}
     elif isinstance(data, list):
         # Recursively apply to all list elements
-        return [replace_tuples(element) for element in data]
+        return [replace_tuples_with_values(element) for element in data]
     elif isinstance(data, tuple):
         # Replace tuple with tuple[1]
         return data[1] if len(data) > 1 else print('Error in replace_tuples: Tuple has no second element')
     else:
         # Return the data as is if it's not a dict, list, or tuple
         return data
+
+
+async def get_root_parameters_nodes(db: AsyncSession, service: ServiceParameter, module: ModuleParameter, **kwargs) -> \
+dict[int, ParameterNode]:
+
+    service_parameters = list(
+        await ServiceParameter.find_all(db, fk_service_id=service.id, **kwargs))
+
+    module_parameters = list(await ModuleParameter.find_all(db, fk_module_id=module.id, **kwargs))
+
+    # Sort the service and module parameters ascending by next_level
+    service_parameters = sorted(service_parameters, key=lambda x: int(x.nest_level))
+    module_parameters = sorted(module_parameters, key=lambda x: int(x.nest_level))
+    # Combine module parameters with service parameters
+    # module parameters should be first to be created as ParameterNodes firstly while building the parameter tree
+    parameters = module_parameters + service_parameters
+
+    # Build parameter tree
+    root_nodes = build_parameter_tree(parameters)
+
+    return root_nodes
+

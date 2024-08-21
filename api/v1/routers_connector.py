@@ -123,7 +123,12 @@ async def update_module(pk: int, request: ModuleBase, db: AsyncSessionDep):
 
 @router.get("/modules/{pk}/parameters", response_model=list[ModuleParameterBase | ModuleParameterDisplayWithChildren])
 async def get_all_params_for_module(pk: int, db: AsyncSessionDep, nested_form: bool = Query()):
-    module_parameters = await ModuleParameter.find_all(db, with_eager_loading=True, fk_module_id=pk)
+
+    if not nested_form:
+        # Remove xml name space parameters
+        module_parameters = await ModuleParameter.find_all(db, with_eager_loading=True, fk_module_id=pk, not_fk_param_loc_cd=4)
+    else:
+        module_parameters = await ModuleParameter.find_all(db, with_eager_loading=True, fk_module_id=pk)
 
     if nested_form:
         root_parameters = []
@@ -156,3 +161,10 @@ async def create_module_parameter(request: ModuleParameterCreate, db: AsyncSessi
 async def update_module_parameter(pk: int, request: ModuleParameterCreateWithoutFK, db: AsyncSessionDep):
     module_parameter = await ModuleParameter.find(db, id=pk)
     return await module_parameter.update(db, **request.model_dump(exclude_unset=True, exclude_none=True))
+
+
+@router.delete('/module-parameters/{pk}')
+async def delete_module_parameter(pk, db: AsyncSessionDep):
+    module_parameter = await ModuleParameter.find(db, id=pk)
+    await module_parameter.delete_self(db, auto_commit=True)
+    return {"detail": 'success'}

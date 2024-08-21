@@ -59,7 +59,7 @@ class ModuleParameterCreateWithoutFK(ModuleParameterCreate):
 
 
 class ModuleParameterDisplayWithChildren(ModuleParameterBase):
-    children: List[ModuleParameterBase] = []
+    children: List['ModuleParameterDisplayWithChildren'] = None
 
 
 class ConnectorBase(BaseModel):

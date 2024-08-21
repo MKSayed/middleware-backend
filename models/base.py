@@ -15,8 +15,10 @@ class Base(DeclarativeBase):
             await db.refresh(self)
         return self
 
-    async def delete(self, db: AsyncSession) -> None:
+    async def delete_self(self, db: AsyncSession, auto_commit=False) -> None:
         await db.delete(self)
+        if auto_commit:
+            await db.commit()
 
     async def update(
         self, db: AsyncSession, auto_commit: bool = True, **kwargs
@@ -159,7 +161,7 @@ class Base(DeclarativeBase):
     #     return db_obj
 
     @classmethod
-    async def remove_model_by_attribute(
+    async def delete_model_by_attribute(
         cls, db: AsyncSession, *, attribute: str, attribute_value: any
     ) -> None:
         if hasattr(cls, attribute):
@@ -172,10 +174,10 @@ class Base(DeclarativeBase):
         else:
             raise AttributeError(
                 f"Attribute {attribute} Doesn't exist on {cls.__name__} Model"
-            )
+            )   
 
     @classmethod
-    async def remove_models_by_attribute(
+    async def delete_models_by_attribute(
         cls, db: AsyncSession, attribute: str, attribute_value: any
     ) -> SimpleNamespace:
         if hasattr(cls, attribute):
