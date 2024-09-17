@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 
 from sqlalchemy.exc import IntegrityError
 
-from api.deps import AsyncSessionDep, CurrentUser
+from api.deps import AsyncSessionDep, CurrentUserDep
 from schemas.schemas_user import (
     UserCreate,
     UserUpdate,
@@ -15,7 +15,7 @@ router = APIRouter()
 
 
 @router.get("/users", response_model=list[UserDisplay])
-async def get_all_users(db: AsyncSessionDep, current_user: CurrentUser):
+async def get_all_users(db: AsyncSessionDep, current_user: CurrentUserDep):
     return await User.get_all(db)
 
 

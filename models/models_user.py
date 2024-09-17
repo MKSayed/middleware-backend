@@ -32,7 +32,7 @@ class User(Base):
     name: Mapped[str] = mapped_column("NAME", String(60), nullable=False)
     national_id: Mapped[Optional[str]] = mapped_column("NATIONAL_ID", String(14))
     status: Mapped[str] = mapped_column("STATUS", String(7), nullable=False)
-    tax_id: Mapped[Optional[int]] = mapped_column("TAX_ID")
+    # tax_id: Mapped[Optional[int]] = mapped_column("TAX_ID") Todo: what is that? :D
     fk_user_typecd: Mapped[int] = mapped_column(
         "FK_USER_TYPECD", ForeignKey("USER_TYPE.CD"), nullable=True, index=True
     )

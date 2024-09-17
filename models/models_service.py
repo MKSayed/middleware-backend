@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Any
 
-from sqlalchemy import String, SmallInteger, DECIMAL, ForeignKey, func, select, Identity
+from sqlalchemy import String, SmallInteger, DECIMAL, ForeignKey, func, select, Identity, Enum
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -42,7 +42,7 @@ class Service(AsyncAttrs, Base):
     fk_module_id: Mapped[Any | None] = mapped_column(
         "FK_MODULE_ID", ForeignKey("MODULE.ID"), index=True, nullable=True
     )
-    http_method: Mapped[str] = mapped_column("HTTP_METHOD", String(10))
+    http_method: Mapped[str] = mapped_column("HTTP_METHOD", Enum('GET', 'POST', 'PUT', 'DELETE', 'PATCH', name="http_method_enum"))
     endpoint_path: Mapped[str] = mapped_column("ENDPOINT_PATH")
     # A service can depend on another server.
     # fk_service_id: Mapped[int | None] = mapped_column("FK_SERVICE_ID", ForeignKey("SERVICE.ID"), index=True)
@@ -93,7 +93,8 @@ class ServiceParameter(AsyncAttrs, Base):
     __tablename__ = "SERVICE_PARAMETER"
 
     id: Mapped[int] = mapped_column(
-        "ID", Identity(start=3000, increment=1), primary_key=True
+        "ID", Identity(start=30000, increment=1), primary_key=True,
+        comment= "service_parameter ids starts from 30000 to distinguish it from module_parameters which starts at 0"
     )
     key: Mapped[str] = mapped_column("KEY", String(200), nullable=False)
     value: Mapped[str | None] = mapped_column("VALUE")
@@ -226,12 +227,11 @@ class ServicePrice(Base):
     )
     enddt: Mapped[date | None] = mapped_column("ENDDT")
     price_value: Mapped[float] = mapped_column(
-        "PRICE_VALUE", DECIMAL(6, 2), nullable=False
+        "PRICE_VALUE", DECIMAL(6, 2)
     )
     max_value: Mapped[float | None] = mapped_column("MAX_VALUE", DECIMAL(6, 2))
-    # Type = String "fixed" or "range"
-    type: Mapped[str | None] = mapped_column("TYPE", String(8))
-    list_value: Mapped[str | None] = mapped_column("LIST_VALUE", String(36))
+    type: Mapped[str] = mapped_column("TYPE", Enum('FIXED', 'RANGE', 'LIST', name='price_type_enum'))
+    # list_value: Mapped[str | None] = mapped_column("LIST_VALUE", String(36))
     fk_service_id: Mapped[Any] = mapped_column(
         "FK_SERVICE_ID", ForeignKey("SERVICE.ID"), index=True
     )
@@ -242,6 +242,14 @@ class ServicePrice(Base):
         # Todo to be changed later when the application start supporting multiple currencies
         default="1",
     )
+
+
+class PriceList(Base):
+    __tablename__ = "PRICE_LIST"
+    id: Mapped[int] = mapped_column("ID", primary_key=True)
+    key: Mapped[str] = mapped_column("KEY", String(40))
+    price_value: Mapped[float] = mapped_column("PRICE_VALUE", DECIMAL(6, 2))
+    fk_service_price_id: Mapped[Any] = mapped_column("FK_SERVICE_PRICE_ID", ForeignKey("SERVICE_PRICE.ID"), index=True)
 
 
 class Provider(Base):

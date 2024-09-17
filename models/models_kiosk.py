@@ -9,16 +9,20 @@ class Kiosk(Base):
     __tablename__ = "KIOSK"
 
     id: Mapped[int] = mapped_column("ID", Integer, primary_key=True)
+    username: Mapped[str] = mapped_column(
+        "USERNAME", String(25), unique=True, nullable=False
+    )
+    password: Mapped[str] = mapped_column("PASSWORD", String(72), nullable=False)
     account_no: Mapped[Numeric] = mapped_column(
         "ACCOUNT_NO", Numeric(10), nullable=False
     )
     ar_name: Mapped[str] = mapped_column("AR_NAME", String(40), nullable=False)
     eng_name: Mapped[str] = mapped_column("ENG_NAME", String(40), nullable=False)
     descr: Mapped[Optional[str]] = mapped_column("DESCR", String(100))
-    creation_date: Mapped[Optional[datetime]] = mapped_column(
+    creation_date: Mapped[datetime] = mapped_column(
         "CREATION_DATE", server_default=func.current_timestamp()
     )
-    updated_date: Mapped[Optional[datetime]] = mapped_column(
+    updated_date: Mapped[datetime | None] = mapped_column(
         "UPDATED_DATE", server_onupdate=func.current_timestamp()
     )
     status: Mapped[Optional[str]] = mapped_column("STATUS", String(1))

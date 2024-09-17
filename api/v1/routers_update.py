@@ -4,7 +4,7 @@ from fastapi import APIRouter, UploadFile, Request, Response, status
 from fastapi.responses import FileResponse
 import os
 
-from api.deps import CurrentUser
+from api.deps import CurrentUserDep
 
 router = APIRouter()
 

@@ -41,6 +41,7 @@ class ServiceCreate(ServiceBase):
     price_value: float
     max_value: float
     fk_currency_id: int
+    price_lists: list["PriceListCreate"]
 
 
 class ServiceGroupBase(BaseModel):
@@ -106,6 +107,11 @@ class ServiceChargeBase(BaseModel):
     fk_commission_vcd: Optional[int] = None
 
 
+class ServicePriceTypeEnum(str, Enum):
+    FIXED = "FIXED"
+    RANGE = "RANGE"
+    LIST = "LIST"
+
 
 class ServicePriceBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -113,10 +119,10 @@ class ServicePriceBase(BaseModel):
     id: int
     stdt: date
     enddt: date | None
-    price_value: Decimal = Field(max_digits=6, decimal_places=2)
+    price_value: Annotated[Decimal, Field(max_digits=6, decimal_places=2)]
     max_value: Annotated[Decimal, Field(max_digits=6, decimal_places=2)] | None = None
-    type: str | None = Field(None, max_length=8)
-    list_value: str | None = Field(None, max_length=36)
+    type: ServicePriceTypeEnum
+    # list_value: str | None = Field(None, max_length=36)
     fk_service_id: int | None = None
     fk_currency_id: int | None = None
 
@@ -127,6 +133,19 @@ class ServicePriceDisplay(ServicePriceBase):
     enddt: ClassVar
     fk_service_id: ClassVar
     fk_currency_id: ClassVar
+
+
+class PriceListBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int | None = None
+    key: Annotated[str, Field(max_length=40)]
+    price_value: Annotated[Decimal, Field(max_digits=6, decimal_places=2)]
+    fk_service_price_id: int
+
+
+class PriceListCreate(PriceListBase):
+    fk_service_price_id: ClassVar
 
 
 class ProviderBase(BaseModel):

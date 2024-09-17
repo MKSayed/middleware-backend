@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status
 from typing import List
 
-from api.deps import AsyncSessionDep, CurrentUser
+from api.deps import AsyncSessionDep, CurrentUserDep
 
 from schemas.schemas_commission import (
     PaymentTypeBase,

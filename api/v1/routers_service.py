@@ -1,12 +1,9 @@
-import httpx
 from colorama import Fore, Style
-from copy import deepcopy
-import xmltodict
 
 from fastapi import APIRouter, Query, status, HTTPException
 from fastapi.responses import JSONResponse
 
-from pydantic import TypeAdapter
+from pydantic import TypeAdapter, BaseModel
 
 from api.deps import AsyncSessionDep
 from models.models_connector import Module, ModuleParameter
@@ -23,7 +20,7 @@ from schemas.schemas_service import (
     ServiceDisplayShort,
     CurrencyDisplayShort,
     ServiceDisplay,
-    ServiceCreate, ServiceParameterCreate, HTTPMethodEnum
+    ServiceCreate, ServiceParameterCreate, HTTPMethodEnum, PriceListBase
 )
 from models.models_service import (
     Currency,
@@ -35,7 +32,7 @@ from models.models_service import (
     ServiceGroup,
     ServicePrice,
     KioskService,
-    KioskServiceFlow,
+    KioskServiceFlow, PriceList,
 )
 from utils.service_module_params_utils import build_parameter_tree, attach_ids_and_values, replace_tuples_with_values, \
     get_root_parameters_nodes
@@ -102,31 +99,6 @@ async def get_provider_services(pk: int, db: AsyncSessionDep):
     return await Service.find(db, fk_providerid=pk)
 
 
-# Service parameter type related endpoints
-# @router.post("/service-parameter-types")
-# async def create_service_parameter_type(
-#     request: ServiceParameterTypeBase, db: AsyncSessionDep
-# ):
-#     return await ServiceParameterType(
-#         **request.model_dump(exclude_unset=True, exclude_none=True)
-#     ).save(db)
-#
-#
-# @router.get("/service-parameter-types", response_model=list[ServiceParameterTypeBase])
-# async def get_all_service_parameter_types(db: AsyncSessionDep):
-#     return await ServiceParameterType.get_all(db)
-#
-#
-# @router.put("/service-parameter-type/{pk}")
-# async def update_service_parameter_type(
-#     pk, request: ServiceParameterTypeBase, db: AsyncSessionDep
-# ):
-#     service_parameter_type = await ServiceParameterType.find(db, cd=pk)
-#     return await service_parameter_type.update(
-#         db, **request.model_dump(exclude_unset=True, exclude_none=True)
-#     )
-
-
 # Service group related endpoints
 @router.post("/service-groups")
 async def create_service_group(request: ServiceGroupBase, db: AsyncSessionDep):
@@ -174,7 +146,7 @@ async def create_service(request: ServiceCreate, db: AsyncSessionDep):
         )
     ).save(db, auto_commit=True)
     service_price_request_dict = request.model_dump(
-        exclude={"ar_name", "eng_name", "fk_module_id", "fk_provider_id", "http_method", "endpoint_path"}
+        exclude={"ar_name", "eng_name", "fk_module_id", "fk_provider_id", "http_method", "endpoint_path", "price_lists"}
     )
     service_price_request_dict["fk_service_id"] = service.id
 
@@ -183,12 +155,27 @@ async def create_service(request: ServiceCreate, db: AsyncSessionDep):
 
     try:
         service_price = await ServicePrice(**service_price_request_dict).save(db, auto_commit=True)
+        # create the price_lists attached to the request's payload if price_type is 'LIST'
+        if service_price.type == 'LIST':
+            price_lists = request.model_dump(include={"price_lists"})["price_lists"]
+            for price_list in price_lists:
+                price_list["fk_service_price_id"] = service_price.id
+
+            await PriceList.create_all(db, price_lists)
+            await db.commit()
     except Exception as e:
+        # If creation of a service_price or price_list failed, make sure to delete the created service and/or service_price
         print(Fore.RED + str(e.with_traceback(None)) + Style.RESET_ALL)
         await db.rollback()
         await db.delete(service)
+        # Check if service_price was created and the exception occurred while creating price_lists or not
+        try:
+            if service_price:
+                await db.delete(service_price)
+        except NameError:
+            pass
         await db.commit()
-        raise HTTPException(detail="An error occurred while creating service", status_code=status.HTTP_417_EXPECTATION_FAILED)
+        raise HTTPException(detail="An error occurred while creating service", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     return JSONResponse(
         {"message": "Service was created successfully"},
@@ -240,16 +227,16 @@ async def get_all_params_for_service(pk: int, db: AsyncSessionDep, nested_form: 
         root_parameters = []
         parameter_collection = {}
         for param in sorted(service_parameters, key=lambda x: int(x.nest_level)):
-            if param.nest_level == 0 or param.fk_service_para_type_cd == 3:
+            if param.nest_level == 0:
                 root_parameters.append(param)
-                parameter_collection[param.ser] = param
+                parameter_collection[param.id] = param
             else:
-                if hasattr(parameter_collection[param.parent_ser], "children"):
-                    parameter_collection[param.parent_ser].children.append(param)
-                    parameter_collection[param.ser] = param
+                if hasattr(parameter_collection[param.parent_id], "children"):
+                    parameter_collection[param.parent_id].children.append(param)
+                    parameter_collection[param.id] = param
                 else:
-                    parameter_collection[param.parent_ser].children = [param]
-                    parameter_collection[param.ser] = param
+                    parameter_collection[param.parent_id].children = [param]
+                    parameter_collection[param.id] = param
 
         return {"service_name": service.eng_name, "service_parameters": root_parameters}
     return service_parameters
@@ -313,6 +300,27 @@ async def update_service_price(pk, request: ServicePriceBase, db: AsyncSessionDe
     )
 
 
+# Price list related endpoints
+@router.post("/price_lists")
+async def create_price_list(request: PriceListBase, db: AsyncSessionDep):
+    return await PriceList(
+        **request.model_dump(exclude_unset=True)
+    ).save(db)
+
+
+@router.get("/price_lists", response_model=list[PriceListBase])
+async def get_all_price_lists(db: AsyncSessionDep):
+    return await PriceList.get_all(db)
+
+
+@router.put("/price_lists/{pk}")
+async def update_price_list(pk, request: PriceListBase, db: AsyncSessionDep):
+    price_list = await PriceList.find(db, id=pk)
+    return await price_list.update(
+        db, **request.model_dump(exclude_none=True, exclude_unset=True)
+    )
+
+
 # Service parameter related endpoints
 @router.post("/service-parameters")
 async def create_service_parameter(request: ServiceParameterCreate, db: AsyncSessionDep):
@@ -340,6 +348,7 @@ async def delete_service_parameter(pk, db: AsyncSessionDep):
     await service_parameter.delete_self(db, auto_commit=True)
     return {"detail": 'success'}
 
+
 # Service & Service Group association endpoints
 @router.post("/service-service-group-associations")
 async def create_service_group_association(
@@ -348,132 +357,4 @@ async def create_service_group_association(
     return await ServiceServiceGroupAssociation(
         fk_service_group_no=fk_service_group_no, fk_service_id=fk_service_id
     ).save(db)
-
-
-# Sync Service endpoints
-@router.get("/db-version")
-async def get_db_version(db: AsyncSessionDep):
-    return {"db_ver": 1}
-
-
-@router.get("/sync")
-async def sync_service_data(service_group_no: int, db: AsyncSessionDep):
-    kiosk_services = await KioskService.get_all(db)
-    kiosk_service_flows = await KioskServiceFlow.get_all(db)
-    services = (
-        await ServiceGroup.find(db, with_eager_loading=True, no=service_group_no)
-    ).services
-
-    for service in services:
-        # Load service_price and service_parameters of each service
-        # service_price and service_parameters are lazy loaded by default
-        await db.refresh(service, ["service_price", "service_parameters"])
-
-    return {
-        "kiosk_services": kiosk_services,
-        "kiosk_service_flows": kiosk_service_flows,
-        "services": services,
-    }
-
-global_session_data_collection = {}
-
-
-@router.post("/send-third-party-request")
-async def send_third_party_request(service_id: int, db: AsyncSessionDep, data: dict):
-    # Fetch the requested service
-    service = await Service.find(db, id=service_id)
-    module = await Module.find(db, id=service.fk_module_id)
-    # # Fetch input service parameters
-    # # not_fk_param_loc_cd=4 prevents adding the xml namespaces as request body parameters
-    # input_service_parameters = list(
-    #     await ServiceParameter.find_all(db, fk_service_id=service_id, fk_param_type_cd=1, not_fk_param_loc_cd=4))
-    #
-    # # not_fk_param_loc_cd=4 prevents adding the xml namespaces as request body parameters
-    # input_module_parameters = list(await ModuleParameter.find_all(db, fk_module_id=module.id, fk_param_type_cd=1, not_fk_param_loc_cd=4))
-    #
-    # # Sort the input service and module parameters ascending by next_level
-    # input_service_parameters = sorted(input_service_parameters, key=lambda x: int(x.nest_level))
-    # input_module_parameters = sorted(input_module_parameters, key=lambda x: int(x.nest_level))
-    # # Combine input module parameters with input service parameters
-    # # input module parameters should be first to be created as ParameterNodes firstly while building the parameter tree
-    # input_parameters = input_module_parameters + input_service_parameters
-    #
-    # # Build parameter tree
-    # root_nodes = build_parameter_tree(input_parameters)
-
-    # Fetch input service parameters
-    # not_fk_param_loc_cd=4 prevents adding the xml namespaces as request body parameters
-    root_nodes = await get_root_parameters_nodes(db, service, module, fk_param_type_cd=1, not_fk_param_loc_cd=4)
-
-    # get or create kiosk_session_data
-    kiosk_id = 999  # Change the value of kiosk_id to the actual kiosk id in production
-    if kiosk_id in global_session_data_collection:
-        kiosk_session_data = global_session_data_collection[kiosk_id]
-    else:
-        global_session_data_collection[kiosk_id] = []
-        kiosk_session_data = global_session_data_collection[kiosk_id]
-
-    # Attach dataIdentifiers to every dictionary (except those nested inside lists) and extract
-    # the corresponding the values from the request data dictionary using the node tree path
-    result = {}
-    for root_node in root_nodes.values():
-        await attach_ids_and_values(db, data, root_node, result, kiosk_session_data)
-
-    # Add the request's data to the global session data collection list for later use in next service calls that
-    # requires the same input data without the need to pass it again from the client
-    kiosk_session_data.append(result)
-
-    # Convert tuples of (node_id, value) into value only after saving it in the session collection and before sending it to the external service
-    input_dict = replace_tuples_with_values(result)
-
-    if not module.is_xml:
-        # TODO: Add JSON logic
-        pass
-    else:
-        # Get the url and timeout from the module attributes and service attributes
-        url = module.base_url + service.endpoint_path
-        timeout = module.timeout
-        nsmap = await get_namespaces(db, service, module)
-
-        envelope = create_xml_base_structure(nsmap)
-        envelope["soapenv:Envelope"].update(input_dict)
-
-        print(xmltodict.unparse(envelope, full_document=False, pretty=True))
-
-        # Send the request to the third party service provider
-        async with httpx.AsyncClient() as client:
-            # Had to use conditional to avoid setting the timeout as None since it is not the same
-            # as the default value in httpx
-            if timeout:
-                # TODO handle the raised exception when timeout is met
-                if service.http_method == HTTPMethodEnum.GET:
-                    response = await client.get(url, content=xmltodict.unparse(envelope, full_document=False), timeout=int(timeout))
-                elif service.http_method == HTTPMethodEnum.POST:
-                    response = await client.post(url, content=xmltodict.unparse(envelope, full_document=False), timeout=int(timeout))
-                elif service.http_method == HTTPMethodEnum.PUT:
-                    response = await client.put(url, content=xmltodict.unparse(envelope, full_document=False), timeout=int(timeout))
-
-        if not response.is_success:
-            raise HTTPException(status_code=response.status_code, detail=xmltodict.parse(response.text, xml_attribs=False))
-        response_dict = xmltodict.parse(response.text, xml_attribs=False)["soapenv:Envelope"]
-
-        root_nodes = await get_root_parameters_nodes(db, service, module, fk_param_type_cd=2)
-
-        result = {}
-        for root_node in root_nodes.values():
-            await attach_ids_and_values(db, response_dict, root_node, result, kiosk_session_data)
-
-        kiosk_session_data.append(result)
-
-        response_dict = replace_tuples_with_values(result)
-
-        # Uncomment this line to Check the response on swagger if needed to make the creation of the output parameters easier
-        return xmltodict.parse(response.text, xml_attribs=False)
-
-
-@router.put('/clear-kiosk-session')
-def clear_kiosk_session_data(kiosk_id: int):
-    del global_session_data_collection[kiosk_id]
-
-
 
